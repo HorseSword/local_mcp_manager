@@ -18,7 +18,7 @@
 
 使用方法：
 
-uv run local_mcp_manager_cli.py
+uv run local_mcp_manager_flask.py
 
 
 
