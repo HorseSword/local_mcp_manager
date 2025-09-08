@@ -1,0 +1,20 @@
+{
+    "mcpServers":{
+        "python_example": {
+            "name": "mcp_name_python",
+            "description": "example python mcp tool",
+            "command": "uv",
+            "args": ["run", "example.py"],
+            "cwd": "path/to/your/code",
+            "out_port":17001
+        },
+        "npx_example": {
+            "name": "mcp_name_npx",
+            "description": "example npx mcp tool",
+            "command": "npx",
+            "args": ["name-of-mcp"],
+            "env": {"LOG_LEVEL": "INFO"},
+            "out_port": 17002
+        }
+    }
+}
