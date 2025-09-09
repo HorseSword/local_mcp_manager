@@ -20,14 +20,22 @@ def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None
         os.chdir(cwd)
     #
     conf = json.loads(json_str)
-    client = ProxyClient(conf)
-    local_proxy = FastMCP.as_proxy(
-        client,
-        name=name,
-    )
-    tar = local_proxy.run(transport='http', host=host, port=int(port))
-    return tar
-
+    try:
+        client = ProxyClient(conf)
+        local_proxy = FastMCP.as_proxy(
+            client,
+            name=name,
+        )
+        tar = local_proxy.run(transport='http', host=host, port=int(port))
+        return tar
+    except:
+        client = Client(conf)
+        local_proxy = FastMCP.as_proxy(
+            client,
+            name=name,
+        )
+        tar = local_proxy.run(transport='http', host=host, port=int(port))
+        return tar
 
 class ProcessManager:
     """ 
@@ -147,13 +155,14 @@ def load_conf(filepath = 'mcp_conf.json'):
     for msk in mcp_servers.keys():
         msv = mcp_servers[msk]
         lst_mprocesses.append({
-            'name':msv.get("name"), 
+            'name':msv.get("name", "no_name"), 
             'process':None,
+            'in_type':"stdio" if msv.get("command",False) else msv.get("type", "unknown"),
             'out_type': 'http',
             'conf': json.dumps({"mcpServers":{msk:msv}}, ensure_ascii=False),
             'host': '127.0.0.1',
-            'cwd': None,
-            'port': msv.get("out_port"),
+            'cwd': msv.get("cwd", None),
+            'port': msv.get("out_port", "null"),
             "is_enabled": msv.get("isActive", True),
             "is_alive": False,
         })

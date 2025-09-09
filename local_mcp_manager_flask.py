@@ -19,7 +19,11 @@ def init_manager():
         manager = ProcessManager(services=services)
 
 def get_manager():
-    """获取进程管理器实例（使用 Flask 的应用上下文）"""
+    """
+    获取进程管理器实例（使用 Flask 的应用上下文）
+
+    Get the process manager instance (using Flask's application context)    
+    """
     if not hasattr(g, 'manager'):
         services = load_conf()
         g.manager = ProcessManager(services=services)
@@ -31,7 +35,11 @@ def index():
 
 @app.route('/api/services', methods=['GET'])
 def get_services():
-    """获取所有服务状态"""
+    """
+    获取服务状态
+
+    get status
+    """
     init_manager()
     manager.refresh_svc_status()
     
@@ -39,6 +47,7 @@ def get_services():
     for svc in manager.services:
         services_data.append({
             'name': svc['name'],
+            'in_type': svc.get("in_type","null"),
             'out_type': svc['out_type'],
             'port': svc['port'],
             'is_enabled': svc['is_enabled'],
@@ -52,19 +61,24 @@ def get_services():
 
 @app.route('/api/services/start-all', methods=['POST'])
 def start_all_services():
-    """启动所有启用的服务"""
+    """
+    启动所有启用的服务
+    
+    """
     init_manager()
     manager.start_all_enabled_services()
     manager.refresh_svc_status()
     
     return jsonify({
         'success': True,
-        'message': '批量启动命令已执行'
+        'message': 'Batch startup command has been executed.'
     })
 
 @app.route('/api/services/stop-all', methods=['POST'])
 def stop_all_services():
-    """停止所有运行中的服务"""
+    """
+    停止所有运行中的服务
+    """
     init_manager()
     manager.stop_all_running_services()
     
@@ -79,12 +93,16 @@ def stop_all_services():
     
     return jsonify({
         'success': True,
-        'message': '所有服务已停止'
+        'message': 'All services stopped.'
     })
 
 @app.route('/api/services/<service_name>/start', methods=['POST'])
 def start_service(service_name):
-    """启动单个服务"""
+    """
+    启动服务
+
+    Start one service
+    """
     init_manager()
     
     # 找到对应服务
@@ -97,7 +115,7 @@ def start_service(service_name):
     if not service:
         return jsonify({
             'success': False,
-            'message': f'服务 {service_name} 不存在'
+            'message': f'Service {service_name} does not exist.'
         }), 404
     
     manager._start_service(service)
@@ -105,12 +123,16 @@ def start_service(service_name):
     
     return jsonify({
         'success': True,
-        'message': f'服务 {service_name} 启动命令已执行'
+        'message': f'Service {service_name} started.'
     })
 
 @app.route('/api/services/<service_name>/stop', methods=['POST'])
 def stop_service(service_name):
-    """停止单个服务"""
+    """
+    停止单个服务
+    
+    Stop one service
+    """
     init_manager()
     
     # 找到对应服务
@@ -123,7 +145,7 @@ def stop_service(service_name):
     if not service:
         return jsonify({
             'success': False,
-            'message': f'服务 {service_name} 不存在'
+            'message': f'Service {service_name} does not exist.'
         }), 404
     
     manager._stop_service(service)
@@ -131,12 +153,16 @@ def stop_service(service_name):
     
     return jsonify({
         'success': True,
-        'message': f'服务 {service_name} 停止命令已执行'
+        'message': f'Service {service_name} stopped.'
     })
 
 @app.route('/api/services/<service_name>/toggle', methods=['POST'])
 def toggle_service_enabled(service_name):
-    """切换服务的启用状态"""
+    """
+    切换服务的启用状态
+    
+    Toggle service
+    """
     init_manager()
     
     # 找到对应服务
@@ -145,17 +171,19 @@ def toggle_service_enabled(service_name):
             svc['is_enabled'] = not svc['is_enabled']
             return jsonify({
                 'success': True,
-                'message': f'服务 {service_name} 启用状态已切换',
+                'message': f'Service {service_name} status switched.',
                 'is_enabled': svc['is_enabled']
             })
     
     return jsonify({
         'success': False,
-        'message': f'服务 {service_name} 不存在'
+        'message': f'Service {service_name} does not exist.'
     }), 404
 
 def cleanup():
-    """清理资源"""
+    """
+    清理资源
+    """
     global manager
     if manager:
         print("正在停止所有服务...")
@@ -170,7 +198,11 @@ def cleanup():
         print("所有服务已停止")
 
 def delayed_startup():
-    """延迟启动：打开浏览器并执行批量启动"""
+    """
+    延迟启动：打开浏览器并执行批量启动
+
+    Not used for now.
+    """
     
     init_manager()
     manager.start_all_enabled_services()
@@ -178,10 +210,13 @@ def delayed_startup():
     time.sleep(1.5)  # 等待服务器启动
     
     # 自动打开浏览器
-    webbrowser.open('http://127.0.0.1:17000')
-    
-    # 等待页面加载后执行批量启动
-    time.sleep(2)
+    try:
+        webbrowser.open('http://127.0.0.1:17000')
+
+        # 等待页面加载后执行批量启动
+        time.sleep(2)
+    except:
+        pass
     
     print("已自动执行批量启动")
 

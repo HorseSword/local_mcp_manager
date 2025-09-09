@@ -146,10 +146,11 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Out_Type</th>
-                    <th>Port</th>
-                    <th>Is_Enabled</th>
-                    <th>Is_Alive</th>
+                    <th>In Type</th>
+                    <th>Out Type</th>
+                    <th>Out Port</th>
+                    <th>Batch Start Enabled</th>
+                    <th>Is Alive</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -215,13 +216,14 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${service.name}</td>
+                    <td>${service.in_type}</td>
                     <td>${service.out_type}</td>
                     <td>${service.port}</td>
                     <td>
                         <span class="${service.is_enabled ? 'status-yes' : 'status-no'}" 
                               style="cursor: pointer;" 
                               onclick="toggleEnabled('${service.name}')"
-                              title="Double click to switch status.">
+                              title="Click to switch status.">
                             ${service.is_enabled ? 'Yes' : 'No'}
                         </span>
                     </td>
@@ -372,5 +374,6 @@
         // 页面失去焦点时停止自动刷新（节省资源）
         window.addEventListener('blur', stopAutoRefresh);
     </script>
+    <center style="padding-top: 2em;">Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a></center>
 </body>
 </html>
