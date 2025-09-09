@@ -1,6 +1,6 @@
 # Local_MCP_Manager
 
-
+跳转至 [中文说明](docs/README_CN.md)
 
 **Local_MCP_Manager** is an open-source software designed to manage your MCP services in one place. 
 
@@ -159,5 +159,4 @@ Local_MCP_Manager is primarily built with the following technologies:
 | Version | Date       | Detail                                   |
 | ------- | ---------- | ---------------------------------------- |
 | v0.1.0  | 2025-09-09 | Initial implementation of basic features |
-
 
