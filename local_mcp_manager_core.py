@@ -8,6 +8,8 @@ from fastmcp import FastMCP
 from fastmcp import Client
 from fastmcp.server.proxy import ProxyClient
 
+VERSION = 'v0.1.1' # 2025-9-11
+
 # ========== Entry ==========
 
 def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None):
@@ -42,6 +44,7 @@ class ProcessManager:
     MCP Service Manager, background.
     """
     def __init__(self, services):
+        self.VERSION = VERSION
         self.services = services  
         self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
 
@@ -149,21 +152,23 @@ class ProcessManager:
 
 def load_conf(filepath = 'mcp_conf.json'):
     lst_mprocesses = []
+    #
     with open(filepath,'r',encoding='utf8') as f:
         dict_conf = json.load(f)
+    #
     mcp_servers = dict_conf.get("mcpServers")
-    for msk in mcp_servers.keys():
-        msv = mcp_servers[msk]
+    for ms_key in mcp_servers.keys():
+        ms_value = mcp_servers[ms_key]
         lst_mprocesses.append({
-            'name':msv.get("name", "no_name"), 
+            'name':ms_value.get("name", ms_key), 
             'process':None,
-            'in_type':"stdio" if msv.get("command",False) else msv.get("type", "unknown"),
+            'in_type':"stdio" if ms_value.get("command",False) else ms_value.get("type", "sse" if ms_value.get("url","").find("/sse")>0 else "http"),
             'out_type': 'http',
-            'conf': json.dumps({"mcpServers":{msk:msv}}, ensure_ascii=False),
-            'host': '127.0.0.1',
-            'cwd': msv.get("cwd", None),
-            'port': msv.get("out_port", "null"),
-            "is_enabled": msv.get("isActive", True),
+            'conf': json.dumps({"mcpServers":{ms_key:ms_value}}, ensure_ascii=False),
+            'host': ms_value.get("host", '127.0.0.1'),
+            'cwd': ms_value.get("cwd", None),
+            'port': ms_value.get("out_port", "null"),
+            "is_enabled": ms_value.get("isActive", True),
             "is_alive": False,
         })
     return lst_mprocesses

@@ -2,7 +2,7 @@ import multiprocessing as mp
 import threading
 import os
 from flask import Flask, render_template, jsonify, request, g
-from local_mcp_manager_core import ProcessManager, load_conf
+from local_mcp_manager_core import ProcessManager, load_conf, VERSION
 import webbrowser
 import sys
 import time
@@ -221,19 +221,29 @@ def delayed_startup():
     print("已自动执行批量启动")
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Local MCP Manager")
+    parser.add_argument("--host", default='127.0.0.1', help="Server IP")
+    parser.add_argument("--port", default=17000, help="WebUI Port Number")
+    args = parser.parse_args()
+    #
+    flask_host = args.host # '127.0.0.1'
+    flask_port = args.port # 17000
+    #
     # Windows 下使用 multiprocessing 时需要保护入口
     mp.freeze_support()
     if os.name == "nt":
         mp.set_start_method("spawn", force=True)
-    
+    #
     # 启动后台线程处理自动操作
     # startup_thread = threading.Thread(target=delayed_startup, daemon=True)
     # startup_thread.start()
+    #
     init_manager()
     manager.start_all_enabled_services()
-
+    #
     try:
-        app.run(host='127.0.0.1', port=17000, debug=False)
+        app.run(host = flask_host, port = flask_port, debug = False)
     except KeyboardInterrupt:
         cleanup()
     finally:

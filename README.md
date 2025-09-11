@@ -158,5 +158,6 @@ Local_MCP_Manager is primarily built with the following technologies:
 
 | Version | Date       | Detail                                   |
 | ------- | ---------- | ---------------------------------------- |
+| v0.1.1  | 2025-09-11 | Auto load "name" if not given; bug fixed. |
 | v0.1.0  | 2025-09-09 | Initial implementation of basic features |
 
