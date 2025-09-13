@@ -8,8 +8,10 @@ from fastmcp import FastMCP
 from fastmcp import Client
 from fastmcp.server.proxy import ProxyClient
 
-VERSION = 'v0.1.1' # 2025-9-11
-
+#
+VERSION = 'v0.1.2' # 2025-9-13
+# VERSION = 'v0.1.1' # 2025-9-11
+#
 # ========== Entry ==========
 
 def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None):

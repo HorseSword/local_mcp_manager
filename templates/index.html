@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <title>Local MCP Manager</title>
     <style>
         body {
@@ -106,10 +107,15 @@
         }
         
         .message {
-            margin-top: 10px;
+            margin-top: -20px;
             padding: 10px;
             border-radius: 4px;
             display: none;
+            position: fixed;
+            z-index: 1024;
+            top: 60px;
+            left:50%;
+            transform: translateX(-50%);
         }
         
         .message.success {
@@ -131,6 +137,7 @@
     </style>
 </head>
 <body>
+
     <div class="container">
         <h1>Local MCP Manager</h1>
         
@@ -158,8 +165,12 @@
                 <!-- 服务数据将通过 JavaScript 填充 -->
             </tbody>
         </table>
+    
     </div>
-
+    <center id="tail" style="padding-top: 2em;">
+        Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a>
+    </center>
+        
     <script>
         let refreshInterval;
         
@@ -172,13 +183,26 @@
         // 显示消息
         function showMessage(text, type = 'success') {
             const messageEl = document.getElementById('message');
+            messageEl.style.transition = 'opacity 100ms ease';
             messageEl.textContent = text;
             messageEl.className = `message ${type}`;
             messageEl.style.display = 'block';
+            // messageEl.style.top = '-100px';
+            messageEl.style.opacity = '0';
             
             setTimeout(() => {
-                messageEl.style.display = 'none';
+                // messageEl.style.top = '100px';
+                messageEl.style.opacity = '1';
+            }, 0);
+
+            setTimeout(() => {
+                // messageEl.style.top = '-100px';
+                messageEl.style.opacity = '0';
             }, 3000);
+
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3200);
         }
         
         // 设置加载状态
@@ -374,6 +398,6 @@
         // 页面失去焦点时停止自动刷新（节省资源）
         window.addEventListener('blur', stopAutoRefresh);
     </script>
-    <center style="padding-top: 2em;">Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a></center>
+    
 </body>
 </html>
