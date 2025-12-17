@@ -168,16 +168,47 @@ tbody tr:hover {
     overflow: hidden; /* 防止内容溢出模态框 */
 }
 
-/* --- 4. 关闭按钮 (右上角 X) --- */
+/* --- 4. 关闭按钮 (模态框外侧右上方 X) --- */
 .close-btn {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
+    color: #666;
+    font-size: 36px;        /* 放大字体 */
     font-weight: bold;
     cursor: pointer;
-    line-height: 20px;
+    line-height: 1;
+
+    /* 定位到模态框外侧右上方 */
+    position: absolute;
+    top: 20px;               /* 距离视口顶部 */
+    right: 20px;             /* 距离视口右边 */
+    width: 40px;
+    height: 40px;
+
+    /* 居中显示 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* 背景和边框 */
+    background-color: white;
+    border-radius: 50%;       /* 圆形按钮 */
+    border: 2px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+
+    /* 过渡效果 */
+    transition: all 0.2s ease;
+    z-index: 1001;            /* 确保在最上层 */
 }
-.close-btn:hover { color: black; }
+
+.close-btn:hover {
+    color: #333;
+    background-color: #f8f9fa;
+    border-color: #999;
+    transform: scale(1.1);   /* 悬停时稍微放大 */
+}
+
+.close-btn:active {
+    transform: scale(0.95);  /* 点击时稍微缩小 */
+}
 
 /* 简单的淡入动画关键帧 */
 @keyframes fadeIn {

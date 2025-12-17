@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <title>Local MCP Manager</title>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
 
     <div class="container">
         <h1>Local MCP Manager</h1>
-        
         <div class="header">
             <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button>
             <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button>
             <button class="btn btn-secondary" onclick="refreshServices()">Refresh</button>
             <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
-            <button class="btn btn-secondary" onclick="editConfig()">Edit Config</button>
+            <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
         </div>
         <div id="message" class="message"></div>
         
@@ -40,15 +40,15 @@
     
     </div>
     <center id="tail" style="padding-top: 2em;">
-        Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a>
+        Manage and test all your MCP services. Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a>
     </center>
     
     <!-- 模态框结构 (默认隐藏) -->
     <div id="myModal" class="modal-overlay">
+        <!-- 关闭按钮 - 移到模态框外部 -->
+        <span class="close-btn">&times;</span>
+
         <div class="modal-content">
-            <!-- 关闭按钮 -->
-            <span class="close-btn">&times;</span>
-            
             <!-- 这里是动态加载内容的容器 -->
             <div id="modal-body-wrapper" style="height: 100%; overflow: hidden;">
                 <p>正在加载数据...</p>
@@ -271,6 +271,7 @@
             console.log('Loading iframe URL:', infoUrl);
 
             iframe.src = infoUrl;
+            iframe.name = 'iframeWindow';
             // 设置内容框高度，不是遮罩层高度
             const modalContent = document.querySelector('.modal-content');
             modalContent.style.height = '80vh';
@@ -283,6 +284,7 @@
             iframe.style.background = 'white';
             iframe.style.boxSizing = 'border-box';
             iframe.style.display = 'block';
+            iframe.style.overflow = 'hidden';
 
             // 清空内容容器并添加iframe
             contentWrapper.innerHTML = '';
@@ -330,7 +332,7 @@
                 } catch (e) {
                     console.log('iframe access error (normal for cross-origin):', e.message);
                 }
-            }, 2000);
+            }, 10000);
         }
         
         // 编辑MCP服务

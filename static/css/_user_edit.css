@@ -1,0 +1,214 @@
+.mcp-edit-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #f5f5f5;
+    overflow: hidden;
+}
+
+.mcp-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #ddd;
+    flex-shrink: 0;
+}
+
+.mcp-edit-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.mcp-edit-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.mcp-edit-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.mcp-edit-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.mcp-edit-btn-basic {
+    background-color: #007bff;
+    color: white;
+}
+.mcp-edit-btn-basic:hover {
+    background-color: #0056b3;
+}
+
+.mcp-edit-btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.mcp-edit-btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.mcp-edit-btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.mcp-edit-btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.mcp-edit-btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.mcp-edit-btn-success:hover {
+    background-color: #1e7e34;
+}
+
+.mcp-edit-content {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+}
+
+.mcp-edit-editor-section {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.mcp-edit-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.mcp-edit-editor-title {
+    font-weight: bold;
+    color: #495057;
+}
+
+.mcp-edit-json-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.mcp-edit-status-valid {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.mcp-edit-status-invalid {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.mcp-edit-json-editor {
+    flex: 1;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    outline: none;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    white-space: pre;
+    overflow: auto;
+    background-color: #fff;
+}
+
+.mcp-edit-error-message {
+    padding: 10px 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border-top: 1px solid #f5c6cb;
+    display: none;
+    flex-shrink: 0;
+}
+
+.mcp-edit-help-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.mcp-edit-help-header {
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: bold;
+    color: #495057;
+    flex-shrink: 0;
+}
+
+.mcp-edit-help-content {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    font-size: 14px;
+    color: #495057;
+}
+
+.mcp-edit-help-content h4 {
+    margin-top: 0;
+    color: #212529;
+}
+
+.mcp-edit-help-content pre {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.mcp-edit-info {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    border-left: 4px solid #2196f3;
+}
+
+.mcp-edit-info .info-item {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.mcp-edit-info .info-label {
+    font-weight: bold;
+    color: #1565c0;
+}

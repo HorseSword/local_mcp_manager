@@ -3,201 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ mode | default('Edit') }} MCP Configuration</title>
-<style>
-    .mcp-edit-container {
-        width: 100%;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        box-sizing: border-box;
-        background-color: #f5f5f5;
-        overflow: hidden;
-    }
-
-    .mcp-edit-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #ddd;
-        flex-shrink: 0;
-    }
-
-    .mcp-edit-title {
-        font-size: 24px;
-        font-weight: bold;
-        color: #333;
-    }
-
-    .mcp-edit-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .mcp-edit-btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.3s;
-    }
-
-    .mcp-edit-btn-primary {
-        background-color: #007bff;
-        color: white;
-    }
-
-    .mcp-edit-btn-primary:hover {
-        background-color: #0056b3;
-    }
-
-    .mcp-edit-btn-secondary {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .mcp-edit-btn-secondary:hover {
-        background-color: #545b62;
-    }
-
-    .mcp-edit-btn-success {
-        background-color: #28a745;
-        color: white;
-    }
-
-    .mcp-edit-btn-success:hover {
-        background-color: #1e7e34;
-    }
-
-    .mcp-edit-content {
-        display: flex;
-        gap: 20px;
-        flex: 1;
-        min-height: 0;
-    }
-
-    .mcp-edit-editor-section {
-        flex: 3;
-        display: flex;
-        flex-direction: column;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-
-    .mcp-edit-editor-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 15px;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        flex-shrink: 0;
-    }
-
-    .mcp-edit-editor-title {
-        font-weight: bold;
-        color: #495057;
-    }
-
-    .mcp-edit-json-status {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .mcp-edit-status-valid {
-        background-color: #d4edda;
-        color: #155724;
-    }
-
-    .mcp-edit-status-invalid {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-
-    .mcp-edit-json-editor {
-        flex: 1;
-        width: 100%;
-        padding: 15px;
-        border: none;
-        outline: none;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-        line-height: 1.5;
-        resize: none;
-        white-space: pre;
-        overflow: auto;
-        background-color: #fff;
-    }
-
-    .mcp-edit-error-message {
-        padding: 10px 15px;
-        background-color: #f8d7da;
-        color: #721c24;
-        border-top: 1px solid #f5c6cb;
-        display: none;
-        flex-shrink: 0;
-    }
-
-    .mcp-edit-help-section {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-
-    .mcp-edit-help-header {
-        padding: 10px 15px;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        font-weight: bold;
-        color: #495057;
-        flex-shrink: 0;
-    }
-
-    .mcp-edit-help-content {
-        flex: 1;
-        padding: 15px;
-        overflow-y: auto;
-        font-size: 14px;
-        color: #495057;
-    }
-
-    .mcp-edit-help-content h4 {
-        margin-top: 0;
-        color: #212529;
-    }
-
-    .mcp-edit-help-content pre {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 4px;
-        overflow-x: auto;
-        font-size: 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-</style>
+    <title>
+        {% if edit_type == 'service' %}Edit MCP Service - {{ service_name }}{% elif edit_type == 'add_service' %}Add New MCP Service{% else %}{{ mode | default('Edit') }} MCP Configuration{% endif %}
+    </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_user_edit.css') }}">
+    <style>
+    
+    </style>
 
 <div class="mcp-edit-container">
     <!-- 头部 -->
     <div class="mcp-edit-header">
-        <div class="mcp-edit-title">{{ mode | default('Edit') }} MCP Configuration</div>
+        <div>
+            {% if edit_type == 'service' %}
+            <div class="mcp-edit-title">Edit MCP Service</div>
+            <div class="mcp-edit-subtitle">
+                <div class="mcp-edit-info">
+                    <div class="info-item">
+                        <span class="info-label">Service Name:</span> {{ service_name }}
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Service ID:</span> {{ service_id }}
+                    </div>
+                </div>
+            </div>
+            {% elif edit_type == 'add_service' %}
+            <div class="mcp-edit-title">Add New MCP Service</div>
+            <div class="mcp-edit-subtitle">
+                <div class="mcp-edit-info">
+                    <div class="info-item">
+                        <span class="info-label">Info:</span> Edit the new service configuration below. The service will be added to your existing configuration.
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="mcp-edit-title">{{ mode | default('Edit') }} MCP Configuration</div>
+            {% endif %}
+        </div>
         <div class="mcp-edit-actions">
-            <button class="mcp-edit-btn mcp-edit-btn-secondary" onclick="formatJSON()">Format JSON</button>
-            <button class="mcp-edit-btn mcp-edit-btn-secondary" onclick="resetToOriginal()">Reset</button>
-            <button class="mcp-edit-btn mcp-edit-btn-success" onclick="saveConfiguration()">Save Configuration</button>
-            <button class="mcp-edit-btn mcp-edit-btn-primary" onclick="closeEditor()">Close</button>
+            <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="formatJSON()">Format JSON</button>
+            <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="resetToOriginal()">Reset</button>
+            <button class="mcp-edit-btn mcp-edit-btn-success" onclick="saveConfiguration()">Save {% if edit_type == 'service' %}Service{% elif edit_type == 'add_service' %}New Service{% else %}Configuration{% endif %}</button>
+            <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="closeEditor()">Close</button>
         </div>
     </div>
 
@@ -207,12 +54,12 @@
         <div class="mcp-edit-editor-section">
             <!-- 编辑器头部 -->
             <div class="mcp-edit-editor-header">
-                <div class="mcp-edit-editor-title">mcp_conf.json</div>
+                <div class="mcp-edit-editor-title">{% if edit_type == 'service' %}Service Configuration{% else %}mcp_conf.json{% endif %}</div>
                 <div id="json-status" class="mcp-edit-json-status mcp-edit-status-valid">Valid JSON</div>
             </div>
 
             <!-- JSON 编辑器 -->
-            <textarea id="json-editor" class="mcp-edit-json-editor" placeholder="Enter your MCP configuration here...">{{ config_content | default('') }}</textarea>
+            <textarea id="json-editor" class="mcp-edit-json-editor" placeholder="{% if edit_type == 'service' %}Enter service configuration here...{% elif edit_type == 'add_service' %}Enter new service configuration here...{% else %}Enter your MCP configuration here...{% endif %}">{{ config_content | default('') }}</textarea>
 
             <!-- 错误消息 -->
             <div id="error-message" class="mcp-edit-error-message"></div>
@@ -222,6 +69,31 @@
         <div class="mcp-edit-help-section">
             <div class="mcp-edit-help-header">Configuration Reference</div>
             <div class="mcp-edit-help-content">
+                {% if edit_type == 'service' or edit_type == 'add_service' %}
+                <h4>{% if edit_type == 'add_service' %}New {% endif %}Service Configuration Format:</h4>
+                <pre>{
+    "name": "Display Name",
+    "description": "Service description",
+    "command": "uv/npx/python",
+    "args": ["run", "script.py"],
+    "cwd": "working/directory",
+    "out_port": 17001,
+    "isActive": true,
+    "env": {"VAR": "value"},
+    "type": "stdio/sse/streamableHttp",
+    "url": "http://localhost:port/sse",
+    "headers": {},
+    "host": "127.0.0.1"
+}</pre>
+                {% if edit_type == 'add_service' %}
+                <p><strong>Required fields:</strong> out_port (unique for each service)</p>
+                <p><strong>Optional fields:</strong> name, description, command, args, cwd, env, type, url, headers, isActive, host</p>
+                <p><strong>Note:</strong> The service name will be used as the service ID. Make sure it's unique.</p>
+                {% else %}
+                <p><strong>Required fields:</strong> out_port (unique for each service)</p>
+                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, isActive, host, name, description, command, args</p>
+                {% endif %}
+                {% else %}
                 <h4>Configuration Format:</h4>
                 <pre>{
     "mcpServers": {
@@ -242,6 +114,7 @@
 }</pre>
                 <p><strong>Required fields:</strong> out_port (unique for each service)</p>
                 <p><strong>Optional fields:</strong> cwd, env, type, url, headers, isActive</p>
+                {% endif %}
 
                 <h4>Field Descriptions:</h4>
                 <ul>
@@ -256,6 +129,7 @@
                     <li><strong>type:</strong> Service type: stdio, sse, or streamableHttp</li>
                     <li><strong>url:</strong> URL for SSE or HTTP services</li>
                     <li><strong>headers:</strong> Additional HTTP headers</li>
+                    <li><strong>host:</strong> Host address for the service</li>
                 </ul>
             </div>
         </div>
@@ -263,23 +137,24 @@
 </div>
 
 <script>
-    // 全局变量 - 简化变量管理
-    if (!window.mcpEditState) {
-        window.mcpEditState = {
-            originalContent: '',
-            currentContent: ''
-        };
-    }
+    console.log("MCP Edit page loaded - Type: {% if edit_type == 'service' %}Service{% else %}Configuration{% endif %}");
 
-    // 获取当前内容的辅助函数
+    // 简单的全局变量
+    let originalContent = '';
+    let currentContent = '';
+    {% if edit_type == 'service' %}
+    const serviceName = '{{ service_name }}';
+    const editType = 'service';
+    {% elif edit_type == 'add_service' %}
+    const editType = 'add_service';
+    {% else %}
+    const editType = 'config';
+    {% endif %}
+
+    // 获取当前编辑器内容
     function getCurrentContent() {
         const editor = document.getElementById('json-editor');
-        return editor ? editor.value : window.mcpEditState.currentContent;
-    }
-
-    // 更新当前内容
-    function updateCurrentContent(content) {
-        window.mcpEditState.currentContent = content;
+        return editor ? editor.value : currentContent;
     }
 
     // 验证 JSON 格式
@@ -296,7 +171,15 @@
                 return false;
             }
 
-            JSON.parse(currentContent);
+            const parsed = JSON.parse(currentContent);
+
+            // 检查必需字段
+            {% if edit_type == 'service' %}
+            if (!parsed.out_port) {
+                throw new Error('Missing required field: out_port');
+            }
+            {% endif %}
+
             statusElement.textContent = 'Valid JSON';
             statusElement.className = 'mcp-edit-json-status mcp-edit-status-valid';
             errorElement.style.display = 'none';
@@ -313,16 +196,16 @@
     // 格式化 JSON
     function formatJSON() {
         try {
-            if (getCurrentContent().trim() === '') {
+            const currentContent = getCurrentContent();
+            if (currentContent.trim() === '') {
                 alert('No content to format');
                 return;
             }
 
-            const parsed = JSON.parse(getCurrentContent());
+            const parsed = JSON.parse(currentContent);
             const formatted = JSON.stringify(parsed, null, 2);
             const editor = document.getElementById('json-editor');
             editor.value = formatted;
-            getCurrentContent() = formatted;
             validateJSON();
         } catch (error) {
             alert('Cannot format invalid JSON: ' + error.message);
@@ -333,8 +216,7 @@
     function resetToOriginal() {
         if (confirm('Are you sure you want to reset to the original configuration? All changes will be lost.')) {
             const editor = document.getElementById('json-editor');
-            editor.value = window.mcpEditState.originalContent;
-            getCurrentContent() = window.mcpEditState.originalContent;
+            editor.value = originalContent;
             validateJSON();
         }
     }
@@ -347,37 +229,56 @@
         }
 
         try {
-            const response = await fetch('/api/config/save', {
+            const currentContent = getCurrentContent();
+            let response, url;
+
+            {% if edit_type == 'service' %}
+            url = `/api/services/${encodeURIComponent(serviceName)}/save`;
+            {% elif edit_type == 'add_service' %}
+            url = '/api/config/add-service';
+            {% else %}
+            url = '/api/config/save';
+            {% endif %}
+
+            response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain',
                 },
-                body: getCurrentContent()
+                body: currentContent
             });
 
             const result = await response.json();
 
             if (result.success) {
-                alert('Configuration saved successfully!');
-                window.mcpEditState.originalContent = getCurrentContent();
+                alert('{% if edit_type == "service" %}Service configuration saved successfully!{% elif edit_type == "add_service" %}New service added successfully!{% else %}Configuration saved successfully!{% endif %}');
+                originalContent = currentContent;
 
                 // 通知父页面刷新
                 if (window.parent) {
-                    window.parent.postMessage({
-                        type: 'MCP_CONFIG_SAVED'
-                    }, '*');
+                    const messageType = {% if edit_type == 'service' %}'MCP_SERVICE_SAVED'{% elif edit_type == 'add_service' %}'MCP_CONFIG_SAVED'{% else %}'MCP_CONFIG_SAVED'{% endif %};
+                    const messageData = {
+                        type: messageType
+                    };
+
+                    {% if edit_type == 'service' %}
+                    messageData.serviceName = serviceName;
+                    {% endif %}
+
+                    window.parent.postMessage(messageData, '*');
                 }
             } else {
-                alert('Failed to save configuration: ' + result.error);
+                alert('Failed to save {% if edit_type == "service" %}service{% elif edit_type == "add_service" %}new service{% else %}configuration{% endif %}: ' + result.error);
             }
         } catch (error) {
-            alert('Error saving configuration: ' + error.message);
+            alert('Error saving {% if edit_type == "service" %}service{% elif edit_type == "add_service" %}new service{% else %}configuration{% endif %}: ' + error.message);
         }
     }
 
     // 关闭编辑器
     function closeEditor() {
-        if (getCurrentContent() !== window.mcpEditState.originalContent) {
+        const currentContent = getCurrentContent();
+        if (currentContent !== originalContent) {
             if (confirm('You have unsaved changes. Are you sure you want to close?')) {
                 // 通知父页面关闭模态框
                 if (window.parent) {
@@ -400,20 +301,20 @@
     document.addEventListener('DOMContentLoaded', function() {
         const editor = document.getElementById('json-editor');
         if (editor) {
-            // 设置初始内容
-            const initialContent = editor.value;
-            window.mcpEditState.originalContent = initialContent;
-            updateCurrentContent(initialContent);
+            originalContent = editor.value;
+            currentContent = originalContent;
 
             // 监听内容变化
             editor.addEventListener('input', function() {
-                updateCurrentContent(this.value);
+                currentContent = this.value;
                 validateJSON();
             });
 
             // 初始验证
             validateJSON();
         }
+
+        console.log('MCP Edit page initialized - Type:', editType, {% if edit_type == 'service' %}'Service:', serviceName{% endif %});
     });
 
     // 键盘快捷键
@@ -432,15 +333,6 @@
         if (e.key === 'Escape') {
             closeEditor();
         }
-    });
-
-    // 调试信息
-    console.log('MCP Edit script loaded - functions available:', {
-        formatJSON: typeof formatJSON,
-        resetToOriginal: typeof resetToOriginal,
-        saveConfiguration: typeof saveConfiguration,
-        closeEditor: typeof closeEditor,
-        validateJSON: typeof validateJSON
     });
 </script>
 </body>

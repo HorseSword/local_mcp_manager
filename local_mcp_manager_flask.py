@@ -109,7 +109,8 @@ def edit_config():
     """
     try:
         config_content = load_config_raw()
-        return render_template('_mcp_edit.html',
+        return render_template('_mcp_edit_unified.html',
+                             edit_type='config',
                              mode='Edit',
                              config_content=config_content)
     except Exception as e:
@@ -124,14 +125,51 @@ def add_config():
     添加新配置页面
     """
     try:
-        config_content = get_config_template()
-        return render_template('_mcp_edit.html',
+        # 找到下一个可用的端口
+        current_config = load_config_raw()
+        used_ports = []
+
+        import json
+        try:
+            config_data = json.loads(current_config)
+            if 'mcpServers' in config_data:
+                for service_data in config_data['mcpServers'].values():
+                    if 'out_port' in service_data:
+                        used_ports.append(service_data['out_port'])
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+        # 找到下一个可用端口（从17001开始）
+        next_port = 17001
+        while next_port in used_ports:
+            next_port += 1
+
+        # 创建新服务模板（只包含单个服务配置）
+        new_service_config = {
+            "name": "New Service",
+            "description": "Service description",
+            "command": "python",
+            "args": ["script.py"],
+            "cwd": "",
+            "out_port": next_port,
+            "isActive": True,
+            "env": {},
+            "type": "stdio",
+            "url": "",
+            "headers": {},
+            "host": "127.0.0.1"
+        }
+
+        config_content = json.dumps(new_service_config, indent=2, ensure_ascii=False)
+
+        return render_template('_mcp_edit_unified.html',
+                             edit_type='add_service',
                              mode='Add',
                              config_content=config_content)
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': f'Failed to create template: {str(e)}'
+            'error': f'Failed to load configuration for adding service: {str(e)}'
         }), 500
 
 @app.route('/api/config/save', methods=['POST'])
@@ -173,6 +211,94 @@ def save_config():
             'error': f'Failed to save configuration: {str(e)}'
         }), 500
 
+@app.route('/api/config/add-service', methods=['POST'])
+def add_service_to_config():
+    """
+    添加新服务到现有配置
+    """
+    try:
+        service_config_content = request.get_data(as_text=True)
+
+        if not service_config_content:
+            return jsonify({
+                'success': False,
+                'error': 'No service configuration provided'
+            }), 400
+
+        # 解析新服务配置
+        new_service_config = json.loads(service_config_content)
+
+        # 验证必需字段
+        if 'out_port' not in new_service_config:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required field: out_port'
+            }), 400
+
+        # 生成服务ID（如果name字段存在且有效，则用作ID；否则使用默认值）
+        service_name = new_service_config.get('name', 'new_service').replace(' ', '_').lower()
+        if not service_name or service_name == 'new_service':
+            # 如果没有有效名称，使用时间戳生成唯一ID
+            import time
+            service_name = f"service_{int(time.time())}"
+
+        # 加载现有配置
+        current_config = load_config_raw()
+        try:
+            config_data = json.loads(current_config) if current_config.strip() else {"mcpServers": {}}
+        except json.JSONDecodeError:
+            config_data = {"mcpServers": {}}
+
+        # 确保mcpServers存在
+        if 'mcpServers' not in config_data:
+            config_data['mcpServers'] = {}
+
+        # 检查服务ID冲突
+        if service_name in config_data['mcpServers']:
+            return jsonify({
+                'success': False,
+                'error': f'Service ID "{service_name}" already exists. Please change the service name.'
+            }), 400
+
+        # 检查端口冲突
+        new_port = new_service_config['out_port']
+        for existing_service in config_data['mcpServers'].values():
+            if existing_service.get('out_port') == new_port:
+                return jsonify({
+                    'success': False,
+                    'error': f'Port {new_port} is already in use by another service.'
+                }), 400
+
+        # 添加新服务到配置
+        config_data['mcpServers'][service_name] = new_service_config
+
+        # 保存完整配置
+        updated_config_content = json.dumps(config_data, indent=2, ensure_ascii=False)
+        save_config_raw(updated_config_content)
+
+        return jsonify({
+            'success': True,
+            'message': f'Service "{service_name}" added successfully'
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON format: {str(e)}'
+        }), 400
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to add new service: {str(e)}'
+        }), 500
+
 @app.route('/api/services/<service_name>/edit')
 def edit_service(service_name):
     """
@@ -182,10 +308,11 @@ def edit_service(service_name):
         service_data = load_service_config(service_name)
         service_config_json = json.dumps(service_data['service_config'], indent=2, ensure_ascii=False)
 
-        return render_template('_mcp_edit_service.html',
+        return render_template('_mcp_edit_unified.html',
+                             edit_type='service',
                              service_name=service_name,
                              service_id=service_data['service_id'],
-                             service_config=service_config_json)
+                             config_content=service_config_json)
     except Exception as e:
         return jsonify({
             'success': False,
