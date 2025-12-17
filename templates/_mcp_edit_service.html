@@ -1,5 +1,10 @@
-<!-- 单个 MCP 服务配置编辑页面 -->
-<style>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit MCP Service - {{ service_name }}</title>
+    <style>
     .mcp-service-edit-container {
         width: 100%;
         height: 100vh;
@@ -292,29 +297,17 @@
 </div>
 
 <script>
-    console.log("_mcp_edit_service.html");
+    console.log("MCP Service Edit page loaded");
 
-    // 全局变量 - 简化变量管理
-    if (!window.mcpServiceEditState) {
-        window.mcpServiceEditState = {
-            originalContent: '',
-            currentContent: '',
-            serviceName: '{{ service_name }}'
-        };
-    } else {
-        // 重置状态
-        window.mcpServiceEditState.serviceName = '{{ service_name }}';
-    }
+    // 简单的全局变量 - 因为iframe是独立环境
+    let originalContent = '';
+    let currentContent = '';
+    const serviceName = '{{ service_name }}';
 
-    // 获取当前内容的辅助函数
+    // 获取当前编辑器内容
     function getCurrentContent() {
         const editor = document.getElementById('json-editor');
-        return editor ? editor.value : window.mcpServiceEditState.currentContent;
-    }
-
-    // 更新当前内容
-    function updateCurrentContent(content) {
-        window.mcpServiceEditState.currentContent = content;
+        return editor ? editor.value : currentContent;
     }
 
     // 验证 JSON 格式
@@ -364,7 +357,6 @@
             const formatted = JSON.stringify(parsed, null, 2);
             const editor = document.getElementById('json-editor');
             editor.value = formatted;
-            updateCurrentContent(formatted);
             validateJSON();
         } catch (error) {
             alert('Cannot format invalid JSON: ' + error.message);
@@ -375,8 +367,7 @@
     function resetToOriginal() {
         if (confirm('Are you sure you want to reset to the original configuration? All changes will be lost.')) {
             const editor = document.getElementById('json-editor');
-            editor.value = window.mcpServiceEditState.originalContent;
-            updateCurrentContent(window.mcpServiceEditState.originalContent);
+            editor.value = originalContent;
             validateJSON();
         }
     }
@@ -390,7 +381,7 @@
 
         try {
             const currentContent = getCurrentContent();
-            const response = await fetch(`/api/services/${encodeURIComponent(window.mcpServiceEditState.serviceName)}/save`, {
+            const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/save`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain',
@@ -402,11 +393,17 @@
 
             if (result.success) {
                 alert('Service configuration saved successfully!');
-                window.mcpServiceEditState.originalContent = currentContent;
+                originalContent = currentContent;
 
-                // 刷新父页面的服务列表
-                if (window.parent && window.parent.refreshServices) {
-                    window.parent.refreshServices();
+                // 通知父页面刷新
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'MCP_SERVICE_SAVED',
+                        serviceName: serviceName
+                    }, '*');
+                    if (window.parent.refreshServices) {
+                        window.parent.refreshServices();
+                    }
                 }
             } else {
                 alert('Failed to save service configuration: ' + result.error);
@@ -419,15 +416,21 @@
     // 关闭编辑器
     function closeEditor() {
         const currentContent = getCurrentContent();
-        if (currentContent !== window.mcpServiceEditState.originalContent) {
+        if (currentContent !== originalContent) {
             if (confirm('You have unsaved changes. Are you sure you want to close?')) {
-                if (window.parent && window.parent.hideModal) {
-                    window.parent.hideModal();
+                // 通知父页面关闭模态框
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'MCP_CLOSE_MODAL'
+                    }, '*');
                 }
             }
         } else {
-            if (window.parent && window.parent.hideModal) {
-                window.parent.hideModal();
+            // 通知父页面关闭模态框
+            if (window.parent) {
+                window.parent.postMessage({
+                    type: 'MCP_CLOSE_MODAL'
+                }, '*');
             }
         }
     }
@@ -436,20 +439,20 @@
     document.addEventListener('DOMContentLoaded', function() {
         const editor = document.getElementById('json-editor');
         if (editor) {
-            // 设置初始内容
-            const initialContent = editor.value;
-            window.mcpServiceEditState.originalContent = initialContent;
-            updateCurrentContent(initialContent);
+            originalContent = editor.value;
+            currentContent = originalContent;
 
             // 监听内容变化
             editor.addEventListener('input', function() {
-                updateCurrentContent(this.value);
+                currentContent = this.value;
                 validateJSON();
             });
 
             // 初始验证
             validateJSON();
         }
+
+        console.log('MCP Service Edit page initialized for service:', serviceName);
     });
 
     // 键盘快捷键
@@ -469,15 +472,6 @@
             closeEditor();
         }
     });
-
-    // 调试信息
-    console.log('MCP Service Edit script loaded - functions available:', {
-        formatJSON1: typeof formatJSON1,
-        resetToOriginal: typeof resetToOriginal,
-        saveServiceConfiguration: typeof saveServiceConfiguration,
-        closeEditor: typeof closeEditor,
-        validateJSON: typeof validateJSON,
-        state: window.mcpServiceEditState,
-        serviceName: window.mcpServiceEditState ? window.mcpServiceEditState.serviceName : 'undefined'
-    });
 </script>
+</body>
+</html>

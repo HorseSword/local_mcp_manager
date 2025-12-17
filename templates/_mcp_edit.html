@@ -1,4 +1,9 @@
-<!-- MCP 配置编辑页面 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ mode | default('Edit') }} MCP Configuration</title>
 <style>
     .mcp-edit-container {
         width: 100%;
@@ -356,9 +361,11 @@
                 alert('Configuration saved successfully!');
                 window.mcpEditState.originalContent = getCurrentContent();
 
-                // 如果是编辑模式，可能需要刷新父页面
-                if (window.parent && window.parent.refreshServices) {
-                    window.parent.refreshServices();
+                // 通知父页面刷新
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'MCP_CONFIG_SAVED'
+                    }, '*');
                 }
             } else {
                 alert('Failed to save configuration: ' + result.error);
@@ -372,13 +379,19 @@
     function closeEditor() {
         if (getCurrentContent() !== window.mcpEditState.originalContent) {
             if (confirm('You have unsaved changes. Are you sure you want to close?')) {
-                if (window.parent && window.parent.hideModal) {
-                    window.parent.hideModal();
+                // 通知父页面关闭模态框
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'MCP_CLOSE_MODAL'
+                    }, '*');
                 }
             }
         } else {
-            if (window.parent && window.parent.hideModal) {
-                window.parent.hideModal();
+            // 通知父页面关闭模态框
+            if (window.parent) {
+                window.parent.postMessage({
+                    type: 'MCP_CLOSE_MODAL'
+                }, '*');
             }
         }
     }
@@ -430,3 +443,5 @@
         validateJSON: typeof validateJSON
     });
 </script>
+</body>
+</html>

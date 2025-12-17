@@ -58,7 +58,6 @@
 
     <script>
         let refreshInterval;
-        let currentRequestController = null; // 用于管理当前请求的 AbortController
 
         // 获取 DOM 元素
         const modal = document.getElementById("myModal");
@@ -168,7 +167,7 @@
                             Info
                         </button>
                         <button class="btn btn-secondary btn-sm .edit-btn" 
-                                 ${service.is_alive? `onclick="editService('${service.name}')"`:""}>
+                                onclick="editService('${service.name}')">
                             Edit
                         </button>
                     </td>
@@ -261,81 +260,150 @@
 
         // 查看MCP服务
         async function infoService(serviceName) {
-            showMessage(`/api/services/${encodeURIComponent(serviceName)}/info`);
-
-            // 如果有正在进行的请求，先中止它
-            if (currentRequestController) {
-                currentRequestController.abort();
-            }
-
-            // 创建新的 AbortController
-            currentRequestController = new AbortController();
+            console.log('Opening info service for:', serviceName);
 
             // 显示模态框
-            modal.style.display = "block";
-            contentWrapper.innerHTML = '<p style="color:gray;">加载中...</p>'; // 重置内容
+            showModal();
 
-            // 发送 AJAX 请求
-            try {
-                const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/info`, {
-                    signal: currentRequestController.signal
-                });
+            // 创建iframe
+            const iframe = document.createElement('iframe');
+            const infoUrl = `/api/services/${encodeURIComponent(serviceName)}/info`;
+            console.log('Loading iframe URL:', infoUrl);
 
-                // 检查请求是否被中止
-                if (currentRequestController.signal.aborted) {
-                    return;
-                }
+            iframe.src = infoUrl;
+            // 设置内容框高度，不是遮罩层高度
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.style.height = '80vh';
+            modalContent.style.maxHeight = '80vh';
 
-                const html = await response.text();
+            iframe.style.width = '100%';
+            iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '6px';
+            iframe.style.background = 'white';
+            iframe.style.boxSizing = 'border-box';
+            iframe.style.display = 'block';
 
-                // 再次检查请求是否被中止（防止在响应处理过程中用户关闭了弹窗）
-                if (currentRequestController.signal.aborted) {
-                    return;
-                }
+            // 清空内容容器并添加iframe
+            contentWrapper.innerHTML = '';
+            contentWrapper.appendChild(iframe);
 
-                contentWrapper.innerHTML = html;
-
-                // 执行动态加载内容中的脚本
-                const scripts = contentWrapper.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    contentWrapper.appendChild(newScript);
-                });
-
-                // 请求完成，清除控制器
-                currentRequestController = null;
-
-            } catch (err) {
-                // 只有在不是用户主动中止的情况下才显示错误
-                if (err.name !== 'AbortError' && currentRequestController) {
-                    contentWrapper.innerHTML = '<p style="color:red;">加载失败</p>';
-                    console.error(err);
-                    currentRequestController = null;
-                }
+            // 监听iframe消息（复用现有的消息处理器）
+            if (!window.mcpMessageHandler) {
+                window.mcpMessageHandler = function(event) {
+                    console.log('Received message from iframe:', event.data);
+                    if (event.data && event.data.type) {
+                        switch (event.data.type) {
+                            case 'MCP_SERVICE_SAVED':
+                                console.log('Service saved:', event.data.serviceName);
+                                refreshServices();
+                                break;
+                            case 'MCP_CLOSE_MODAL':
+                                console.log('Closing modal from iframe');
+                                hideModal();
+                                break;
+                        }
+                    }
+                };
+                window.addEventListener('message', window.mcpMessageHandler);
             }
+
+            // 监听iframe加载事件
+            iframe.onload = function() {
+                console.log('iframe loaded for service info:', serviceName);
+            };
+
+            iframe.onerror = function() {
+                console.error('Failed to load iframe for service info:', serviceName);
+                showMessage('Failed to load service info', 'error');
+                hideModal();
+            };
+
+            // 设置超时检查
+            setTimeout(() => {
+                try {
+                    if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
+                        console.error('iframe failed to load');
+                        showMessage('Failed to load service info', 'error');
+                        hideModal();
+                    }
+                } catch (e) {
+                    console.log('iframe access error (normal for cross-origin):', e.message);
+                }
+            }, 2000);
         }
         
         // 编辑MCP服务
         async function editService(serviceName) {
             try {
+                console.log('Opening edit service for:', serviceName);
                 showModal();
-                const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/edit`);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // 创建iframe
+                const iframe = document.createElement('iframe');
+                const editUrl = `/api/services/${encodeURIComponent(serviceName)}/edit`;
+                console.log('Loading iframe URL:', editUrl);
+
+                iframe.src = editUrl;
+                // 设置内容框高度，不是遮罩层高度
+                const modalContent = document.querySelector('.modal-content');
+                modalContent.style.height = '80vh';
+                modalContent.style.maxHeight = '80vh';
+
+                iframe.style.width = '100%';
+                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.border = 'none';
+                iframe.style.borderRadius = '6px';
+                iframe.style.background = 'white';
+                iframe.style.boxSizing = 'border-box';
+                iframe.style.display = 'block';
+
+                // 清空内容容器并添加iframe
+                contentWrapper.innerHTML = '';
+                contentWrapper.appendChild(iframe);
+
+                // 监听iframe消息（只添加一次）
+                if (!window.mcpMessageHandler) {
+                    window.mcpMessageHandler = function(event) {
+                        console.log('Received message from iframe:', event.data);
+                        if (event.data && event.data.type) {
+                            switch (event.data.type) {
+                                case 'MCP_SERVICE_SAVED':
+                                    console.log('Service saved:', event.data.serviceName);
+                                    refreshServices();
+                                    break;
+                                case 'MCP_CLOSE_MODAL':
+                                    console.log('Closing modal from iframe');
+                                    hideModal();
+                                    break;
+                            }
+                        }
+                    };
+                    window.addEventListener('message', window.mcpMessageHandler);
                 }
 
-                const html = await response.text();
-                contentWrapper.innerHTML = html;
+                // 监听iframe加载事件
+                iframe.onload = function() {
+                    console.log('iframe loaded for service:', serviceName);
+                };
 
-                // 执行动态加载内容中的脚本
-                const scripts = contentWrapper.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    contentWrapper.appendChild(newScript);
-                });
+                iframe.onerror = function() {
+                    console.error('Failed to load iframe for service:', serviceName);
+                    showMessage('Failed to load edit service iframe', 'error');
+                };
+
+                // 设置超时检查
+                setTimeout(() => {
+                    try {
+                        if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
+                            console.error('iframe failed to load');
+                            showMessage('Failed to load edit service page', 'error');
+                        }
+                    } catch (e) {
+                        console.log('iframe access error (normal for cross-origin):', e.message);
+                    }
+                }, 2000);
+
             } catch (error) {
                 console.error('Error loading edit service form:', error);
                 showMessage('Failed to load edit service form: ' + error.message, 'error');
@@ -346,21 +414,77 @@
         // 添加MCP服务
         async function addMCP() {
             try {
+                console.log('Opening add MCP form');
                 showModal();
-                const response = await fetch('/api/config/add');
-                const html = await response.text();
-                contentWrapper.innerHTML = html;
 
-                // 执行动态加载内容中的脚本
-                const scripts = contentWrapper.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    contentWrapper.appendChild(newScript);
-                });
+                // 创建iframe
+                const iframe = document.createElement('iframe');
+                const addUrl = '/api/config/add';
+                console.log('Loading iframe URL:', addUrl);
+
+                iframe.src = addUrl;
+                // 设置内容框高度，不是遮罩层高度
+                const modalContent = document.querySelector('.modal-content');
+                modalContent.style.height = '80vh';
+                modalContent.style.maxHeight = '80vh';
+
+                iframe.style.width = '100%';
+                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.border = 'none';
+                iframe.style.borderRadius = '6px';
+                iframe.style.background = 'white';
+                iframe.style.boxSizing = 'border-box';
+                iframe.style.display = 'block';
+
+                // 清空内容容器并添加iframe
+                contentWrapper.innerHTML = '';
+                contentWrapper.appendChild(iframe);
+
+                // 监听iframe消息（复用现有的消息处理器）
+                if (!window.mcpMessageHandler) {
+                    window.mcpMessageHandler = function(event) {
+                        console.log('Received message from iframe:', event.data);
+                        if (event.data && event.data.type) {
+                            switch (event.data.type) {
+                                case 'MCP_CONFIG_SAVED':
+                                    console.log('Configuration saved');
+                                    refreshServices();
+                                    break;
+                                case 'MCP_CLOSE_MODAL':
+                                    console.log('Closing modal from iframe');
+                                    hideModal();
+                                    break;
+                            }
+                        }
+                    };
+                    window.addEventListener('message', window.mcpMessageHandler);
+                }
+
+                // 监听iframe加载事件
+                iframe.onload = function() {
+                    console.log('iframe loaded for add MCP form');
+                };
+
+                iframe.onerror = function() {
+                    console.error('Failed to load iframe for add MCP form');
+                    showMessage('Failed to load add MCP form', 'error');
+                };
+
+                // 设置超时检查
+                setTimeout(() => {
+                    try {
+                        if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
+                            console.error('iframe failed to load');
+                            showMessage('Failed to load add MCP form', 'error');
+                        }
+                    } catch (e) {
+                        console.log('iframe access error (normal for cross-origin):', e.message);
+                    }
+                }, 2000);
+
             } catch (error) {
                 console.error('Error loading add MCP form:', error);
-                showMessage('Failed to load add MCP form', 'error');
+                showMessage('Failed to load add MCP form: ' + error.message, 'error');
                 hideModal();
             }
         }
@@ -368,21 +492,77 @@
         // 编辑配置
         async function editConfig() {
             try {
+                console.log('Opening edit config form');
                 showModal();
-                const response = await fetch('/api/config/edit');
-                const html = await response.text();
-                contentWrapper.innerHTML = html;
 
-                // 执行动态加载内容中的脚本
-                const scripts = contentWrapper.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    contentWrapper.appendChild(newScript);
-                });
+                // 创建iframe
+                const iframe = document.createElement('iframe');
+                const editUrl = '/api/config/edit';
+                console.log('Loading iframe URL:', editUrl);
+
+                iframe.src = editUrl;
+                // 设置内容框高度，不是遮罩层高度
+                const modalContent = document.querySelector('.modal-content');
+                modalContent.style.height = '80vh';
+                modalContent.style.maxHeight = '80vh';
+
+                iframe.style.width = '100%';
+                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.border = 'none';
+                iframe.style.borderRadius = '6px';
+                iframe.style.background = 'white';
+                iframe.style.boxSizing = 'border-box';
+                iframe.style.display = 'block';
+
+                // 清空内容容器并添加iframe
+                contentWrapper.innerHTML = '';
+                contentWrapper.appendChild(iframe);
+
+                // 监听iframe消息（复用现有的消息处理器）
+                if (!window.mcpMessageHandler) {
+                    window.mcpMessageHandler = function(event) {
+                        console.log('Received message from iframe:', event.data);
+                        if (event.data && event.data.type) {
+                            switch (event.data.type) {
+                                case 'MCP_CONFIG_SAVED':
+                                    console.log('Configuration saved');
+                                    refreshServices();
+                                    break;
+                                case 'MCP_CLOSE_MODAL':
+                                    console.log('Closing modal from iframe');
+                                    hideModal();
+                                    break;
+                            }
+                        }
+                    };
+                    window.addEventListener('message', window.mcpMessageHandler);
+                }
+
+                // 监听iframe加载事件
+                iframe.onload = function() {
+                    console.log('iframe loaded for edit config form');
+                };
+
+                iframe.onerror = function() {
+                    console.error('Failed to load iframe for edit config form');
+                    showMessage('Failed to load edit config form', 'error');
+                };
+
+                // 设置超时检查
+                setTimeout(() => {
+                    try {
+                        if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
+                            console.error('iframe failed to load');
+                            showMessage('Failed to load edit config form', 'error');
+                        }
+                    } catch (e) {
+                        console.log('iframe access error (normal for cross-origin):', e.message);
+                    }
+                }, 2000);
+
             } catch (error) {
                 console.error('Error loading edit config form:', error);
-                showMessage('Failed to load edit config form', 'error');
+                showMessage('Failed to load edit config form: ' + error.message, 'error');
                 hideModal();
             }
         }
@@ -417,14 +597,9 @@
             }
         }
         
-        // 页面关闭时停止自动刷新并中止所有请求
+        // 页面关闭时停止自动刷新
         window.addEventListener('beforeunload', function() {
             stopAutoRefresh();
-            // 中止正在进行的MCP信息请求
-            if (currentRequestController) {
-                currentRequestController.abort();
-                currentRequestController = null;
-            }
         });
         
         // 页面获得焦点时重新开始自动刷新
@@ -445,12 +620,6 @@
         // 关闭模态框并中止请求的通用函数
         function closeModal() {
             modal.style.display = "none";
-
-            // 如果有正在进行的请求，中止它
-            if (currentRequestController) {
-                currentRequestController.abort();
-                currentRequestController = null;
-            }
         }
 
         // 2. 关闭模态框逻辑 (点击 X)

@@ -158,7 +158,7 @@ tbody tr:hover {
     margin: 5% auto; /* 距顶部 5%，水平居中 */
     padding: 6px;
     border: 1px solid #888;
-    width: 90%; 
+    width: 90%;
     min-height: 80vh;
     max-height: 80vh;
     border-radius: 8px;

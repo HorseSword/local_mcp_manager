@@ -1,9 +1,12 @@
-<!-- 可复用的模态框组件，支持传入变量 -->
-
-<style>
-</style>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/_user_info.css') }}">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Service Info - {{ serviceName | default('Unknown') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_user_info.css') }}">
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; box-sizing: border-box;">
 <div class="container_1" style="width: 100%; height: 100%; overflow: hidden; box-sizing: border-box;">
     <!-- 第一行：标题 -->
     <header class="header_">
@@ -236,4 +239,6 @@
     });
 </script>
 
-
+</div>
+</body>
+</html>
