@@ -9,8 +9,10 @@ test/
 *.egg-info
 *.ipynb
 mcp_conf.json
+mcp_conf.json.*
 *.ps1
 
 # Virtual environments
 .venv
 
+CLAUDE.md

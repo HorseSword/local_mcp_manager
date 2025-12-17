@@ -5,136 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <title>Local MCP Manager</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-        
-        .btn-primary {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #1a6d2d;
-        }
-        
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        
-        .btn-secondary {
-            background-color: #007bff;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #0056b3;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        
-        tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .status-yes {
-            color: #28a745;
-            font-weight: bold;
-        }
-        
-        .status-no {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        
-        .actions {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .btn-sm {
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-        
-        .message {
-            margin-top: -20px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-            position: fixed;
-            z-index: 1024;
-            top: 60px;
-            left:50%;
-            transform: translateX(-50%);
-        }
-        
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
 
@@ -145,8 +16,9 @@
             <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button>
             <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button>
             <button class="btn btn-secondary" onclick="refreshServices()">Refresh</button>
+            <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
+            <button class="btn btn-secondary" onclick="editConfig()">Edit Config</button>
         </div>
-        
         <div id="message" class="message"></div>
         
         <table id="servicesTable">
@@ -170,10 +42,29 @@
     <center id="tail" style="padding-top: 2em;">
         Open Source at <a href="https://github.com/HorseSword/local_mcp_manager" target="_blank" rel="noopener">https://github.com/HorseSword/local_mcp_manager</a>
     </center>
-        
+    
+    <!-- 模态框结构 (默认隐藏) -->
+    <div id="myModal" class="modal-overlay">
+        <div class="modal-content">
+            <!-- 关闭按钮 -->
+            <span class="close-btn">&times;</span>
+            
+            <!-- 这里是动态加载内容的容器 -->
+            <div id="modal-body-wrapper" style="height: 100%; overflow: hidden;">
+                <p>正在加载数据...</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         let refreshInterval;
-        
+        let currentRequestController = null; // 用于管理当前请求的 AbortController
+
+        // 获取 DOM 元素
+        const modal = document.getElementById("myModal");
+        const contentWrapper = document.getElementById("modal-body-wrapper");
+        const closeBtn = document.querySelector(".close-btn");
+
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
             refreshServices();
@@ -239,7 +130,12 @@
             services.forEach(service => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${service.name}</td>
+                    <td>
+                        <span class="${service.is_alive ? 'srv-running' : 'srv-stopped'}" 
+                            ${service.is_alive? `onclick="infoService('${service.name}')"`:""}>
+                            ${service.name}
+                        </span>
+                    </td>
                     <td>${service.in_type}</td>
                     <td>${service.out_type}</td>
                     <td>${service.port}</td>
@@ -257,15 +153,23 @@
                         </span>
                     </td>
                     <td class="actions">
-                        <button class="btn btn-primary btn-sm" 
-                                onclick="startService('${service.name}')"
+                        <button class="btn ${service.is_alive ? 'btn-disabled':'btn-primary' } btn-sm" 
+                                ${service.is_alive? "":`onclick="startService('${service.name}')"`}
                                 ${service.is_alive ? 'disabled' : ''}>
                             Start
                         </button>
-                        <button class="btn btn-danger btn-sm" 
-                                onclick="stopService('${service.name}')"
+                        <button class="btn ${service.is_alive? 'btn-danger':'btn-disabled'} btn-sm" 
+                                ${service.is_alive? `onclick="stopService('${service.name}')"`:""}
                                 ${!service.is_alive ? 'disabled' : ''}>
                             Stop
+                        </button>
+                        <button class="btn ${service.is_alive? 'btn-secondary':'btn-disabled'} btn-sm" 
+                                ${service.is_alive? `onclick="infoService('${service.name}')"`:""}>
+                            Info
+                        </button>
+                        <button class="btn btn-secondary btn-sm .edit-btn" 
+                                 ${service.is_alive? `onclick="editService('${service.name}')"`:""}>
+                            Edit
                         </button>
                     </td>
                 `;
@@ -354,6 +258,134 @@
                 showMessage('Network Error: ' + error.message, 'error');
             }
         }
+
+        // 查看MCP服务
+        async function infoService(serviceName) {
+            showMessage(`/api/services/${encodeURIComponent(serviceName)}/info`);
+
+            // 如果有正在进行的请求，先中止它
+            if (currentRequestController) {
+                currentRequestController.abort();
+            }
+
+            // 创建新的 AbortController
+            currentRequestController = new AbortController();
+
+            // 显示模态框
+            modal.style.display = "block";
+            contentWrapper.innerHTML = '<p style="color:gray;">加载中...</p>'; // 重置内容
+
+            // 发送 AJAX 请求
+            try {
+                const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/info`, {
+                    signal: currentRequestController.signal
+                });
+
+                // 检查请求是否被中止
+                if (currentRequestController.signal.aborted) {
+                    return;
+                }
+
+                const html = await response.text();
+
+                // 再次检查请求是否被中止（防止在响应处理过程中用户关闭了弹窗）
+                if (currentRequestController.signal.aborted) {
+                    return;
+                }
+
+                contentWrapper.innerHTML = html;
+
+                // 执行动态加载内容中的脚本
+                const scripts = contentWrapper.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    contentWrapper.appendChild(newScript);
+                });
+
+                // 请求完成，清除控制器
+                currentRequestController = null;
+
+            } catch (err) {
+                // 只有在不是用户主动中止的情况下才显示错误
+                if (err.name !== 'AbortError' && currentRequestController) {
+                    contentWrapper.innerHTML = '<p style="color:red;">加载失败</p>';
+                    console.error(err);
+                    currentRequestController = null;
+                }
+            }
+        }
+        
+        // 编辑MCP服务
+        async function editService(serviceName) {
+            try {
+                showModal();
+                const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/edit`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const html = await response.text();
+                contentWrapper.innerHTML = html;
+
+                // 执行动态加载内容中的脚本
+                const scripts = contentWrapper.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    contentWrapper.appendChild(newScript);
+                });
+            } catch (error) {
+                console.error('Error loading edit service form:', error);
+                showMessage('Failed to load edit service form: ' + error.message, 'error');
+                hideModal();
+            }
+        }
+
+        // 添加MCP服务
+        async function addMCP() {
+            try {
+                showModal();
+                const response = await fetch('/api/config/add');
+                const html = await response.text();
+                contentWrapper.innerHTML = html;
+
+                // 执行动态加载内容中的脚本
+                const scripts = contentWrapper.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    contentWrapper.appendChild(newScript);
+                });
+            } catch (error) {
+                console.error('Error loading add MCP form:', error);
+                showMessage('Failed to load add MCP form', 'error');
+                hideModal();
+            }
+        }
+
+        // 编辑配置
+        async function editConfig() {
+            try {
+                showModal();
+                const response = await fetch('/api/config/edit');
+                const html = await response.text();
+                contentWrapper.innerHTML = html;
+
+                // 执行动态加载内容中的脚本
+                const scripts = contentWrapper.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    contentWrapper.appendChild(newScript);
+                });
+            } catch (error) {
+                console.error('Error loading edit config form:', error);
+                showMessage('Failed to load edit config form', 'error');
+                hideModal();
+            }
+        }
         
         // 切换服务启用状态
         async function toggleEnabled(serviceName) {
@@ -385,8 +417,15 @@
             }
         }
         
-        // 页面关闭时停止自动刷新
-        window.addEventListener('beforeunload', stopAutoRefresh);
+        // 页面关闭时停止自动刷新并中止所有请求
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+            // 中止正在进行的MCP信息请求
+            if (currentRequestController) {
+                currentRequestController.abort();
+                currentRequestController = null;
+            }
+        });
         
         // 页面获得焦点时重新开始自动刷新
         window.addEventListener('focus', function() {
@@ -397,6 +436,35 @@
         
         // 页面失去焦点时停止自动刷新（节省资源）
         window.addEventListener('blur', stopAutoRefresh);
+
+        //
+        function showModal() {
+            modal.style.display = "block";
+        }
+        
+        // 关闭模态框并中止请求的通用函数
+        function closeModal() {
+            modal.style.display = "none";
+
+            // 如果有正在进行的请求，中止它
+            if (currentRequestController) {
+                currentRequestController.abort();
+                currentRequestController = null;
+            }
+        }
+
+        // 2. 关闭模态框逻辑 (点击 X)
+        closeBtn.onclick = function() {
+            closeModal();
+        }
+
+        // 3. 关闭模态框逻辑 (点击遮罩层背景)
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
     </script>
     
 </body>

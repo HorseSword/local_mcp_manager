@@ -1,0 +1,233 @@
+
+/* 主容器：纵向排列 (标题在上，内容在下) */
+.container_1 {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 80vh; /* 增加最大高度到视口的75% */
+    max-height: 80vh; /* 增加最大高度到视口的75% */
+    overflow: hidden;
+}
+
+/* 第二行：主要内容区域 (左右分栏) */
+.main-content {
+    flex: 1; /* 占据剩余所有高度 */
+    display: flex; /* 开启横向布局 */
+    overflow: hidden; /* 关键：防止内部子元素撑开父容器 */
+}
+
+/* 左侧：文本显示区 */
+.left-panel {
+    width: 35%; 
+    padding: 20px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    overflow-y: auto; /* 内容过多时垂直滚动 */
+    line-height: 1.6;
+    color: #555;
+}
+
+/* 右侧：文本显示区 */
+.right-panel {
+    width: 25%; 
+    padding: 20px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    overflow-y: auto; /* 内容过多时垂直滚动 */
+    line-height: 1.6;
+    color: #555;
+}
+
+/* 中间：填报区 */
+.param-panel {
+    flex: 1; /* 占据剩余宽度 (即另外50%) */
+    display: flex;
+    flex-direction: column; /* 内部再次纵向排列：输入区在上，按钮在下 */
+    background-color: #fff; /* 与左右面板保持一致的白色背景 */
+    box-sizing: border-box; /* 确保整体尺寸计算正确 */
+}
+
+/* 确保所有容器元素都使用border-box */
+.tool-name-section,
+.params-section,
+.form-scroll-area,
+.section-header,
+.parameters-container,
+.param-pair {
+    box-sizing: border-box;
+}
+
+/* 右侧上部：可滚动的输入框区域 */
+.form-scroll-area {
+    flex: 1; /* 占据右侧剩余高度 */
+    overflow-y: auto; /* 内容过多时垂直滚动 */
+    padding: 20px;
+    min-height: 200px; /* 设置最小高度，确保有足够空间显示输入框 */
+}
+
+/* 头部样式 */
+.header_ {
+    flex: 0 0 auto; /* 高度固定 */
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+
+.header_ h1 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333;
+}
+
+/* 右侧下部：固定的按钮区域 */
+.form-footer {
+    flex: 0 0 auto; /* 高度固定 */
+    padding: 15px 20px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end; /* 按钮靠右排列 */
+    gap: 10px; /* 按钮间距 */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05); /* 加一点阴影增加层次感 */
+}
+
+/* 工具名称区域 */
+.tool-name-section {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+    box-sizing: border-box; /* 确保padding不超出容器 */
+}
+
+/* 参数区域 */
+.params-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #ddd;
+    flex: 0 0 auto;
+    /* 移除背景色设置，自动继承上层背景 */
+}
+
+.section-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+}
+
+.btn-add-param {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-add-param:hover {
+    background-color: #218838;
+}
+
+/* 参数对样式 */
+.param-pair {
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    /* 移除背景色设置，自动继承上层背景 */
+}
+
+.param-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.param-key, .param-value {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    box-sizing: border-box; /* 确保padding不超出容器 */
+}
+
+.param-key {
+    min-width: 120px;
+}
+
+.param-value {
+    flex: 2;
+}
+
+.btn-remove-param {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex: 0 0 auto;
+}
+
+.btn-remove-param:hover {
+    background-color: #c82333;
+}
+
+/* 表单样式美化 (可选) */
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box; /* 确保padding不超出容器 */
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+/* 按钮样式 */
+.btn-basic {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.btn-submit {
+    background-color: #007bff;
+    color: white;
+}
+.btn-submit:hover { background-color: #0056b3; }
+.btn-reset {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-reset:hover { background-color: #545b62; }

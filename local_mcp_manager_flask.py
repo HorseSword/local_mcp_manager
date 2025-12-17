@@ -1,12 +1,20 @@
+"""
+Docstring for local_mcp_manager_flask
+
+
+"""
+
 import multiprocessing as mp
 import threading
 import os
+import json
 from flask import Flask, render_template, jsonify, request, g
-from local_mcp_manager_core import ProcessManager, load_conf, VERSION
+from local_mcp_manager_core import ProcessManager, load_conf, VERSION, load_config_raw, save_config_raw, get_config_template, load_service_config, save_service_config
 import webbrowser
 import sys
 import time
 
+#%%
 app = Flask(__name__)
 
 # 全局进程管理器实例
@@ -32,6 +40,198 @@ def get_manager():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/services/<service_name>/info', methods=['GET'])
+async def show_mcp_info(service_name):
+    """
+    Docstring for show_mcp_info
+    获取 MCP 工具的信息。
+    
+    :param service_name: Description
+    """
+    init_manager()
+    service_info = await manager.get_tools_by_name(service_name)
+    return render_template('_mcp_info.html', serviceName = service_name, serviceInfo = service_info)
+
+@app.route('/api/services/<service_name>/call_tool', methods=['POST'])
+async def mcp_call_tool(service_name):
+    """
+    调用指定的工具。
+    """
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data provided'
+            }), 400
+
+        tool_name = data.get('tool_name')
+        parameters = data.get('parameters', {})
+
+        if not tool_name:
+            return jsonify({
+                'success': False,
+                'error': 'Tool name is required'
+            }), 400
+
+        # 初始化管理器
+        init_manager()
+
+        # 调用工具
+        tool_result_json = await manager.call_tool(service_name, tool_name, json.dumps(parameters))
+
+        # 解析结果
+        tool_result = json.loads(tool_result_json)
+
+        return jsonify({
+            'success': True,
+            'result': tool_result
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON in parameters: {str(e)}'
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Tool call failed: {str(e)}'
+        }), 500
+
+@app.route('/api/config/edit')
+def edit_config():
+    """
+    编辑配置文件页面
+    """
+    try:
+        config_content = load_config_raw()
+        return render_template('_mcp_edit.html',
+                             mode='Edit',
+                             config_content=config_content)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load configuration: {str(e)}'
+        }), 500
+
+@app.route('/api/config/add')
+def add_config():
+    """
+    添加新配置页面
+    """
+    try:
+        config_content = get_config_template()
+        return render_template('_mcp_edit.html',
+                             mode='Add',
+                             config_content=config_content)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create template: {str(e)}'
+        }), 500
+
+@app.route('/api/config/save', methods=['POST'])
+def save_config():
+    """
+    保存配置文件
+    """
+    try:
+        config_content = request.get_data(as_text=True)
+
+        if not config_content:
+            return jsonify({
+                'success': False,
+                'error': 'No configuration content provided'
+            }), 400
+
+        save_config_raw(config_content)
+
+        return jsonify({
+            'success': True,
+            'message': 'Configuration saved successfully'
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON format: {str(e)}'
+        }), 400
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to save configuration: {str(e)}'
+        }), 500
+
+@app.route('/api/services/<service_name>/edit')
+def edit_service(service_name):
+    """
+    编辑单个服务的配置
+    """
+    try:
+        service_data = load_service_config(service_name)
+        service_config_json = json.dumps(service_data['service_config'], indent=2, ensure_ascii=False)
+
+        return render_template('_mcp_edit_service.html',
+                             service_name=service_name,
+                             service_id=service_data['service_id'],
+                             service_config=service_config_json)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load service configuration: {str(e)}'
+        }), 500
+
+@app.route('/api/services/<service_name>/save', methods=['POST'])
+def save_service(service_name):
+    """
+    保存单个服务的配置
+    """
+    try:
+        service_config_content = request.get_data(as_text=True)
+
+        if not service_config_content:
+            return jsonify({
+                'success': False,
+                'error': 'No service configuration content provided'
+            }), 400
+
+        save_service_config(service_name, service_config_content)
+
+        return jsonify({
+            'success': True,
+            'message': 'Service configuration saved successfully'
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON format: {str(e)}'
+        }), 400
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to save service configuration: {str(e)}'
+        }), 500
+
+#%%
 
 @app.route('/api/services', methods=['GET'])
 def get_services():

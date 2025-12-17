@@ -1,0 +1,432 @@
+<!-- MCP 配置编辑页面 -->
+<style>
+    .mcp-edit-container {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        box-sizing: border-box;
+        background-color: #f5f5f5;
+        overflow: hidden;
+    }
+
+    .mcp-edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ddd;
+        flex-shrink: 0;
+    }
+
+    .mcp-edit-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .mcp-edit-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .mcp-edit-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+
+    .mcp-edit-btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .mcp-edit-btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .mcp-edit-btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .mcp-edit-btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    .mcp-edit-btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .mcp-edit-btn-success:hover {
+        background-color: #1e7e34;
+    }
+
+    .mcp-edit-content {
+        display: flex;
+        gap: 20px;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .mcp-edit-editor-section {
+        flex: 3;
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .mcp-edit-editor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        flex-shrink: 0;
+    }
+
+    .mcp-edit-editor-title {
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .mcp-edit-json-status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .mcp-edit-status-valid {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .mcp-edit-status-invalid {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .mcp-edit-json-editor {
+        flex: 1;
+        width: 100%;
+        padding: 15px;
+        border: none;
+        outline: none;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: none;
+        white-space: pre;
+        overflow: auto;
+        background-color: #fff;
+    }
+
+    .mcp-edit-error-message {
+        padding: 10px 15px;
+        background-color: #f8d7da;
+        color: #721c24;
+        border-top: 1px solid #f5c6cb;
+        display: none;
+        flex-shrink: 0;
+    }
+
+    .mcp-edit-help-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .mcp-edit-help-header {
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: bold;
+        color: #495057;
+        flex-shrink: 0;
+    }
+
+    .mcp-edit-help-content {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        font-size: 14px;
+        color: #495057;
+    }
+
+    .mcp-edit-help-content h4 {
+        margin-top: 0;
+        color: #212529;
+    }
+
+    .mcp-edit-help-content pre {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+</style>
+
+<div class="mcp-edit-container">
+    <!-- 头部 -->
+    <div class="mcp-edit-header">
+        <div class="mcp-edit-title">{{ mode | default('Edit') }} MCP Configuration</div>
+        <div class="mcp-edit-actions">
+            <button class="mcp-edit-btn mcp-edit-btn-secondary" onclick="formatJSON()">Format JSON</button>
+            <button class="mcp-edit-btn mcp-edit-btn-secondary" onclick="resetToOriginal()">Reset</button>
+            <button class="mcp-edit-btn mcp-edit-btn-success" onclick="saveConfiguration()">Save Configuration</button>
+            <button class="mcp-edit-btn mcp-edit-btn-primary" onclick="closeEditor()">Close</button>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="mcp-edit-content">
+        <!-- 左侧编辑区域 -->
+        <div class="mcp-edit-editor-section">
+            <!-- 编辑器头部 -->
+            <div class="mcp-edit-editor-header">
+                <div class="mcp-edit-editor-title">mcp_conf.json</div>
+                <div id="json-status" class="mcp-edit-json-status mcp-edit-status-valid">Valid JSON</div>
+            </div>
+
+            <!-- JSON 编辑器 -->
+            <textarea id="json-editor" class="mcp-edit-json-editor" placeholder="Enter your MCP configuration here...">{{ config_content | default('') }}</textarea>
+
+            <!-- 错误消息 -->
+            <div id="error-message" class="mcp-edit-error-message"></div>
+        </div>
+
+        <!-- 右侧帮助区域 -->
+        <div class="mcp-edit-help-section">
+            <div class="mcp-edit-help-header">Configuration Reference</div>
+            <div class="mcp-edit-help-content">
+                <h4>Configuration Format:</h4>
+                <pre>{
+    "mcpServers": {
+        "service_id": {
+            "name": "Display Name",
+            "description": "Service description",
+            "command": "uv/npx/python",
+            "args": ["run", "script.py"],
+            "cwd": "working/directory",
+            "out_port": 17001,
+            "isActive": true,
+            "env": {"VAR": "value"},
+            "type": "stdio/sse/streamableHttp",
+            "url": "http://localhost:port/sse",
+            "headers": {}
+        }
+    }
+}</pre>
+                <p><strong>Required fields:</strong> out_port (unique for each service)</p>
+                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, isActive</p>
+
+                <h4>Field Descriptions:</h4>
+                <ul>
+                    <li><strong>name:</strong> Display name for the service</li>
+                    <li><strong>description:</strong> Brief description of what the service does</li>
+                    <li><strong>command:</strong> Command to run the service (uv, npx, python, etc.)</li>
+                    <li><strong>args:</strong> Array of arguments for the command</li>
+                    <li><strong>cwd:</strong> Working directory for the service</li>
+                    <li><strong>out_port:</strong> Unique port number for the service</li>
+                    <li><strong>isActive:</strong> Whether the service should be auto-started</li>
+                    <li><strong>env:</strong> Environment variables for the service</li>
+                    <li><strong>type:</strong> Service type: stdio, sse, or streamableHttp</li>
+                    <li><strong>url:</strong> URL for SSE or HTTP services</li>
+                    <li><strong>headers:</strong> Additional HTTP headers</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全局变量 - 简化变量管理
+    if (!window.mcpEditState) {
+        window.mcpEditState = {
+            originalContent: '',
+            currentContent: ''
+        };
+    }
+
+    // 获取当前内容的辅助函数
+    function getCurrentContent() {
+        const editor = document.getElementById('json-editor');
+        return editor ? editor.value : window.mcpEditState.currentContent;
+    }
+
+    // 更新当前内容
+    function updateCurrentContent(content) {
+        window.mcpEditState.currentContent = content;
+    }
+
+    // 验证 JSON 格式
+    function validateJSON() {
+        const statusElement = document.getElementById('json-status');
+        const errorElement = document.getElementById('error-message');
+        const currentContent = getCurrentContent();
+
+        try {
+            if (currentContent.trim() === '') {
+                statusElement.textContent = 'Empty';
+                statusElement.className = 'mcp-edit-json-status mcp-edit-status-invalid';
+                errorElement.style.display = 'none';
+                return false;
+            }
+
+            JSON.parse(currentContent);
+            statusElement.textContent = 'Valid JSON';
+            statusElement.className = 'mcp-edit-json-status mcp-edit-status-valid';
+            errorElement.style.display = 'none';
+            return true;
+        } catch (error) {
+            statusElement.textContent = 'Invalid JSON';
+            statusElement.className = 'mcp-edit-json-status mcp-edit-status-invalid';
+            errorElement.textContent = 'JSON Syntax Error: ' + error.message;
+            errorElement.style.display = 'block';
+            return false;
+        }
+    }
+
+    // 格式化 JSON
+    function formatJSON() {
+        try {
+            if (getCurrentContent().trim() === '') {
+                alert('No content to format');
+                return;
+            }
+
+            const parsed = JSON.parse(getCurrentContent());
+            const formatted = JSON.stringify(parsed, null, 2);
+            const editor = document.getElementById('json-editor');
+            editor.value = formatted;
+            getCurrentContent() = formatted;
+            validateJSON();
+        } catch (error) {
+            alert('Cannot format invalid JSON: ' + error.message);
+        }
+    }
+
+    // 重置到原始内容
+    function resetToOriginal() {
+        if (confirm('Are you sure you want to reset to the original configuration? All changes will be lost.')) {
+            const editor = document.getElementById('json-editor');
+            editor.value = window.mcpEditState.originalContent;
+            getCurrentContent() = window.mcpEditState.originalContent;
+            validateJSON();
+        }
+    }
+
+    // 保存配置
+    async function saveConfiguration() {
+        if (!validateJSON()) {
+            alert('Please fix JSON syntax errors before saving.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/config/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: getCurrentContent()
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Configuration saved successfully!');
+                window.mcpEditState.originalContent = getCurrentContent();
+
+                // 如果是编辑模式，可能需要刷新父页面
+                if (window.parent && window.parent.refreshServices) {
+                    window.parent.refreshServices();
+                }
+            } else {
+                alert('Failed to save configuration: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error saving configuration: ' + error.message);
+        }
+    }
+
+    // 关闭编辑器
+    function closeEditor() {
+        if (getCurrentContent() !== window.mcpEditState.originalContent) {
+            if (confirm('You have unsaved changes. Are you sure you want to close?')) {
+                if (window.parent && window.parent.hideModal) {
+                    window.parent.hideModal();
+                }
+            }
+        } else {
+            if (window.parent && window.parent.hideModal) {
+                window.parent.hideModal();
+            }
+        }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        const editor = document.getElementById('json-editor');
+        if (editor) {
+            // 设置初始内容
+            const initialContent = editor.value;
+            window.mcpEditState.originalContent = initialContent;
+            updateCurrentContent(initialContent);
+
+            // 监听内容变化
+            editor.addEventListener('input', function() {
+                updateCurrentContent(this.value);
+                validateJSON();
+            });
+
+            // 初始验证
+            validateJSON();
+        }
+    });
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S 保存
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveConfiguration();
+        }
+        // Ctrl+F 格式化
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            formatJSON();
+        }
+        // Escape 关闭
+        if (e.key === 'Escape') {
+            closeEditor();
+        }
+    });
+
+    // 调试信息
+    console.log('MCP Edit script loaded - functions available:', {
+        formatJSON: typeof formatJSON,
+        resetToOriginal: typeof resetToOriginal,
+        saveConfiguration: typeof saveConfiguration,
+        closeEditor: typeof closeEditor,
+        validateJSON: typeof validateJSON
+    });
+</script>
