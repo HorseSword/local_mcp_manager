@@ -158,6 +158,8 @@ Local_MCP_Manager is primarily built with the following technologies:
 
 | Version | Date       | Detail                                   |
 | ------- | ---------- | ---------------------------------------- |
+| v0.3.0  | 2025-12-17 | MCP edit window added. |
+| v0.2.0  | 2025-12-16 | MCP info and call window added. |
 | v0.1.2  | 2025-09-13 | Icon added. Toast style improved. |
 | v0.1.1  | 2025-09-11 | Auto load "name" if not given; bug fixed. |
 | v0.1.0  | 2025-09-09 | Initial implementation of basic features |
