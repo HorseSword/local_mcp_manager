@@ -10,7 +10,7 @@ from fastmcp import Client
 from fastmcp.server.proxy import ProxyClient
 
 #
-VERSION = 'v0.3.0'
+VERSION = 'v0.3.1'
 #
 # ========== Entry ==========
 

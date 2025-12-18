@@ -158,6 +158,7 @@ Local_MCP_Manager is primarily built with the following technologies:
 
 | Version | Date       | Detail                                   |
 | ------- | ---------- | ---------------------------------------- |
+| v0.3.1  | 2025-12-18 | Delete MCP added. Reboot added. |
 | v0.3.0  | 2025-12-17 | MCP edit window added. |
 | v0.2.0  | 2025-12-16 | MCP info and call window added. |
 | v0.1.2  | 2025-09-13 | Icon added. Toast style improved. |
