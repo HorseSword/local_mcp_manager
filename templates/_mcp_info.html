@@ -6,6 +6,7 @@
     <title>MCP Service Info - {{ serviceName | default('Unknown') }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_user_info.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_json.css') }}">
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; box-sizing: border-box;">
 <div class="container_1" style="width: 100%; height: 100%; overflow: hidden; box-sizing: border-box;">
@@ -19,7 +20,7 @@
         
         <!-- 左侧：文本区 (可滚动) -->
         <div class="left-panel">
-            {{ serviceInfo }}
+            <pre><code style = "white-space: pre-wrap; word-break: break-word; font-size: clamp(14px, 1rem, 24px)">{{ serviceInfo }}</code></pre>
         </div>
 
         <!-- 中间：参数填报区 -->
@@ -28,17 +29,17 @@
             <!-- 工具名称输入区域 -->
             <div class="tool-name-section">
                 <div class="form-group">
-                    <label for="tool-name">工具名称 (Tool Name)</label>
-                    <input type="text" id="tool-name" name="tool_name" placeholder="请输入要调用的工具名称" required>
+                    <label for="tool-name">Tool Name</label>
+                    <input type="text" id="tool-name" name="tool_name" placeholder="Input tool name." required>
                 </div>
             </div>
 
             <!-- 参数区域 -->
             <div class="params-section">
                 <div class="section-header">
-                    <h4>参数 (Parameters)</h4>
+                    <h4>Parameters</h4>
                     <button type="button" class="btn-add-param" onclick="addParameter()">
-                        + 添加参数
+                        + Add Parameter
                     </button>
                 </div>
 
@@ -48,8 +49,8 @@
                         <!-- 默认参数对 -->
                         <div class="param-pair" data-param-id="1">
                             <div class="param-input-group">
-                                <input type="text" class="param-key" placeholder="参数键 (key)" name="param_key_1">
-                                <input type="text" class="param-value" placeholder="参数值 (value)" name="param_value_1">
+                                <input type="text" class="param-key" placeholder="key" name="param_key_1">
+                                <input type="text" class="param-value" placeholder="value" name="param_value_1">
                                 <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
                             </div>
                         </div>
@@ -59,15 +60,15 @@
 
             <!-- 按钮区域 (固定在底部) -->
             <div class="form-footer">
-                <button type="button" class="btn-basic btn-reset" onclick="resetForm()">重置</button>
-                <button type="button" class="btn-basic btn-submit" onclick="submitForm()">提交</button>
+                <button type="button" class="btn-basic btn-reset" onclick="resetForm()">Reset</button>
+                <button type="button" class="btn-basic btn-submit" onclick="submitForm()">Submit</button>
             </div>
 
         </form>
 
         <!-- 右侧：结果区 (可滚动) -->
         <div class="right-panel">
-            {{ serviceResult | default('无内容') }}
+            {{ serviceResult | default('Submit to get results.') }}
         </div>
 
     </div>
@@ -88,8 +89,8 @@
 
         paramPair.innerHTML = `
             <div class="param-input-group">
-                <input type="text" class="param-key" placeholder="参数键 (key)" name="param_key_${paramCount}">
-                <input type="text" class="param-value" placeholder="参数值 (value)" name="param_value_${paramCount}">
+                <input type="text" class="param-key" placeholder="key" name="param_key_${paramCount}">
+                <input type="text" class="param-value" placeholder="value" name="param_value_${paramCount}">
                 <button type="button" class="btn-remove-param" onclick="removeParameter(${paramCount})">×</button>
             </div>
         `;
@@ -216,8 +217,8 @@
         container.innerHTML = `
             <div class="param-pair" data-param-id="1">
                 <div class="param-input-group">
-                    <input type="text" class="param-key" placeholder="参数键 (key)" name="param_key_1">
-                    <input type="text" class="param-value" placeholder="参数值 (value)" name="param_value_1">
+                    <input type="text" class="param-key" placeholder="key" name="param_key_1">
+                    <input type="text" class="param-value" placeholder="value" name="param_value_1">
                     <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
                 </div>
             </div>
@@ -229,7 +230,7 @@
         // 清空结果区域
         const resultPanel = document.querySelector('.right-panel');
         if (resultPanel) {
-            resultPanel.innerHTML = '无内容';
+            resultPanel.innerHTML = 'Submit to get results.';
         }
     }
 
@@ -238,8 +239,9 @@
         // 确保DOM已完全加载
         console.log('MCP工具调用表单初始化完成');
     });
-</script>
 
+</script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/_json.js') }}"></script>
 </div>
 </body>
 </html>

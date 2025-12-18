@@ -18,6 +18,7 @@
             <button class="btn btn-secondary" onclick="refreshServices()">Refresh</button>
             <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
             <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
+            <button class="btn btn-danger" onclick="reboot()">Reboot</button>
         </div>
         <div id="message" class="message"></div>
         
@@ -176,6 +177,28 @@
             });
         }
         
+        // Reboot
+        async function reboot() {
+            setLoading(true);
+            try {
+                const response = await fetch('/api/services/reboot', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(data.message);
+                    await refreshServices();
+                } else {
+                    showMessage('Reboot finished.', 'error');
+                }
+            } catch (error) {
+                showMessage('Reboot Error: ' + error.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
         // 批量启动服务
         async function startAllServices() {
             setLoading(true);
@@ -278,7 +301,7 @@
             modalContent.style.maxHeight = '80vh';
 
             iframe.style.width = '100%';
-            iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+            iframe.style.height = '100%'; // 'calc(80vh - 120px)'; // 减去头部、按钮和边距
             iframe.style.border = 'none';
             iframe.style.borderRadius = '6px';
             iframe.style.background = 'white';
@@ -302,7 +325,7 @@
                                 break;
                             case 'MCP_CLOSE_MODAL':
                                 console.log('Closing modal from iframe');
-                                hideModal();
+                                closeModal();
                                 break;
                         }
                     }
@@ -318,7 +341,7 @@
             iframe.onerror = function() {
                 console.error('Failed to load iframe for service info:', serviceName);
                 showMessage('Failed to load service info', 'error');
-                hideModal();
+                closeModal();
             };
 
             // 设置超时检查
@@ -327,7 +350,7 @@
                     if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
                         console.error('iframe failed to load');
                         showMessage('Failed to load service info', 'error');
-                        hideModal();
+                        closeModal();
                     }
                 } catch (e) {
                     console.log('iframe access error (normal for cross-origin):', e.message);
@@ -353,7 +376,7 @@
                 modalContent.style.maxHeight = '80vh';
 
                 iframe.style.width = '100%';
-                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.height = '100%'; // 'calc(80vh - 120px)'; // 减去头部、按钮和边距
                 iframe.style.border = 'none';
                 iframe.style.borderRadius = '6px';
                 iframe.style.background = 'white';
@@ -376,7 +399,7 @@
                                     break;
                                 case 'MCP_CLOSE_MODAL':
                                     console.log('Closing modal from iframe');
-                                    hideModal();
+                                    closeModal();
                                     break;
                             }
                         }
@@ -409,7 +432,7 @@
             } catch (error) {
                 console.error('Error loading edit service form:', error);
                 showMessage('Failed to load edit service form: ' + error.message, 'error');
-                hideModal();
+                closeModal();
             }
         }
 
@@ -431,7 +454,7 @@
                 modalContent.style.maxHeight = '80vh';
 
                 iframe.style.width = '100%';
-                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.height = '100%'; // 'calc(80vh - 120px)'; // 减去头部、按钮和边距
                 iframe.style.border = 'none';
                 iframe.style.borderRadius = '6px';
                 iframe.style.background = 'white';
@@ -454,7 +477,7 @@
                                     break;
                                 case 'MCP_CLOSE_MODAL':
                                     console.log('Closing modal from iframe');
-                                    hideModal();
+                                    closeModal();
                                     break;
                             }
                         }
@@ -487,7 +510,7 @@
             } catch (error) {
                 console.error('Error loading add MCP form:', error);
                 showMessage('Failed to load add MCP form: ' + error.message, 'error');
-                hideModal();
+                closeModal();
             }
         }
 
@@ -509,12 +532,13 @@
                 modalContent.style.maxHeight = '80vh';
 
                 iframe.style.width = '100%';
-                iframe.style.height = 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+                iframe.style.height = '100%'; // 'calc(80vh - 120px)'; // 减去头部、按钮和边距
                 iframe.style.border = 'none';
                 iframe.style.borderRadius = '6px';
                 iframe.style.background = 'white';
                 iframe.style.boxSizing = 'border-box';
                 iframe.style.display = 'block';
+                iframe.style.overflowY = 'hidden';
 
                 // 清空内容容器并添加iframe
                 contentWrapper.innerHTML = '';
@@ -532,7 +556,7 @@
                                     break;
                                 case 'MCP_CLOSE_MODAL':
                                     console.log('Closing modal from iframe');
-                                    hideModal();
+                                    closeModal();
                                     break;
                             }
                         }
@@ -565,7 +589,7 @@
             } catch (error) {
                 console.error('Error loading edit config form:', error);
                 showMessage('Failed to load edit config form: ' + error.message, 'error');
-                hideModal();
+                closeModal();
             }
         }
         

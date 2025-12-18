@@ -10,7 +10,8 @@
     <style>
     
     </style>
-
+</head>
+<body style="overflow: hidden;">
 <div class="mcp-edit-container">
     <!-- 头部 -->
     <div class="mcp-edit-header">
@@ -44,7 +45,10 @@
             <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="formatJSON()">Format JSON</button>
             <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="resetToOriginal()">Reset</button>
             <button class="mcp-edit-btn mcp-edit-btn-success" onclick="saveConfiguration()">Save {% if edit_type == 'service' %}Service{% elif edit_type == 'add_service' %}New Service{% else %}Configuration{% endif %}</button>
-            <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="closeEditor()">Close</button>
+            {% if edit_type == 'service' %}
+            <button class="mcp-edit-btn mcp-edit-btn-delete" onclick="deleteService()">Delete MCP</button>
+            {% endif %}
+            <!-- <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="closeEditor()">Close</button> -->
         </div>
     </div>
 
@@ -219,6 +223,12 @@
             editor.value = originalContent;
             validateJSON();
         }
+    }
+
+    // 删除
+    function deleteService(){
+        let r = confirm('Are you sure to DELETE this MCP service?')
+        console.log(r);
     }
 
     // 保存配置

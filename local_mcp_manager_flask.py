@@ -21,6 +21,9 @@ app = Flask(__name__)
 manager = None
 
 def init_manager():
+    """ 
+    对全局变量的 mamager 初始化。
+    """
     global manager
     if manager is None:
         services = load_conf()
@@ -52,6 +55,12 @@ async def show_mcp_info(service_name):
     init_manager()
     service_info = await manager.get_tools_by_name(service_name)
     return render_template('_mcp_info.html', serviceName = service_name, serviceInfo = service_info)
+
+@app.route('/api/all', methods=['GET'])
+async def mcp_get_all():
+    init_manager()
+    service_all = await manager.get_tools_all()
+    return service_all
 
 @app.route('/api/services/<service_name>/call_tool', methods=['POST'])
 async def mcp_call_tool(service_name):
@@ -422,6 +431,20 @@ def stop_all_services():
         'success': True,
         'message': 'All services stopped.'
     })
+
+@app.route('/api/services/reboot', methods=['POST'])
+def reboot():
+    """ 
+    重启服务
+    """
+    stop_all_services()
+    manager.reload_conf()
+    manager.start_all_enabled_services()
+    return jsonify({
+        'success': True,
+        'message': 'Reboot successfully.'
+    })
+
 
 @app.route('/api/services/<service_name>/start', methods=['POST'])
 def start_service(service_name):

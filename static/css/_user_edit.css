@@ -80,6 +80,15 @@
     background-color: #1e7e34;
 }
 
+.mcp-edit-btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.mcp-edit-btn-delete:hover {
+    background-color: #c82333;
+}
+
 .mcp-edit-content {
     display: flex;
     gap: 20px;
@@ -88,7 +97,7 @@
 }
 
 .mcp-edit-editor-section {
-    flex: 3;
+    flex: 6;
     display: flex;
     flex-direction: column;
     background-color: white;
@@ -154,7 +163,7 @@
 }
 
 .mcp-edit-help-section {
-    flex: 1;
+    flex: 4;
     display: flex;
     flex-direction: column;
     background-color: white;

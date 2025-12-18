@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import asyncio
 import os
 import json
 import time
@@ -46,6 +47,16 @@ class ProcessManager:
     """
     def __init__(self, services):
         self.VERSION = VERSION
+        self.services = services  
+        self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
+    
+    def reload_conf(self, services=None):
+        """ 
+        重新加载配置文件，执行此操作会先关停服务。
+        """
+        if services is None:
+            services = load_conf()
+        self.stop_all_running_services()  # 必须先关停，再刷新
         self.services = services  
         self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
 
@@ -149,7 +160,7 @@ class ProcessManager:
             if alive:
                 n_alive += 1
         return n_alive
-    
+
     async def get_tools_by_name(self, svc_name):
         """
         获取MCP介绍信息
@@ -161,20 +172,36 @@ class ProcessManager:
         if len(lst_svc)>0:
             svc = lst_svc[0]
             if svc['host'].startswith("http"):
-                dict_conf = {"mcp":{
-                    "url": f"{svc['host']}:{svc['port']}/mcp"
-                }}
-            else:
-                dict_conf = {"mcp":{
-                    "url": f"http://{svc['host']}:{svc['port']}/mcp"
-                }}
+                host = svc['host']
+            elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
+                host = 'http://127.0.0.1'
+
+            dict_conf = {"mcp":{
+                "url": f"{host}:{svc['port']}/mcp"
+            }}
+
             async with Client(dict_conf) as client:
-                dict_res['tools'] = [t.model_dump() for t in await client.list_tools()]
+                try:
+                    dict_res['tools'] = [t.model_dump() for t in await client.list_tools()]
+                except:
+                    dict_res['tools'] = [str(t) for t in await client.list_tools()]
                 # dict_res['resources'] = [t.modeawait client.list_resources()
         
-        print(f"dict_res = {dict_res}")
-        return json.dumps(dict_res, ensure_ascii=False)
+        print(f"[get_tools_by_name] dict_res = {dict_res}")
+        try:
+            return json.dumps(dict_res['tools'], indent=2, ensure_ascii=False)
+        except:
+            return str(dict_res['tools'])
     
+    async def get_tools_all(self):
+        """ 
+        获取全部 MCP介绍信息
+        """
+        dict_tools = {}
+        lst_tasks = [self.get_tools_by_name(s.get("name")) for s in self.services]
+        results = await asyncio.gather(*lst_tasks, return_exceptions=True)
+        return str(results)
+        
     async def call_tool(self, svc_name:str, tool_name:str, tool_params:str):
         """ 
         调用工具
@@ -184,13 +211,14 @@ class ProcessManager:
         if len(lst_svc)>0:
             svc = lst_svc[0]
             if svc['host'].startswith("http"):
-                dict_conf = {"mcp":{
-                    "url": f"{svc['host']}:{svc['port']}/mcp"
-                }}
-            else:
-                dict_conf = {"mcp":{
-                    "url": f"http://{svc['host']}:{svc['port']}/mcp"
-                }}
+                host = svc['host']
+            elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
+                host = 'http://127.0.0.1'
+
+            dict_conf = {"mcp":{
+                "url": f"{host}:{svc['port']}/mcp"
+            }}
+
             async with Client(dict_conf) as client:
                 tool_result = await client.call_tool(tool_name, json.loads(tool_params))
                 try:
@@ -198,7 +226,7 @@ class ProcessManager:
                 except:
                     dict_res['tool_result'] = str(tool_result)
         
-        print(f"dict_res = {dict_res}")
+        print(f"[call_tool] dict_res = {dict_res}")
         return json.dumps(dict_res, ensure_ascii=False)
 
 def load_conf(filepath = 'mcp_conf.json'):
