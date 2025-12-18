@@ -9,7 +9,7 @@ import threading
 import os
 import json
 from flask import Flask, render_template, jsonify, request, g
-from local_mcp_manager_core import ProcessManager, load_conf, VERSION, load_config_raw, save_config_raw, get_config_template, load_service_config, save_service_config
+from local_mcp_manager_core import ProcessManager, load_conf, VERSION, load_config_raw, save_config_raw, get_config_template, load_service_config, save_service_config, delete_service_config
 import webbrowser
 import sys
 import time
@@ -61,6 +61,24 @@ async def mcp_get_all():
     init_manager()
     service_all = await manager.get_tools_all()
     return service_all
+
+@app.route('/api/services/<service_name>/delete', methods=['POST'])
+async def mcp_delete(service_name):
+    """ 
+    delete service
+    """
+    try:
+        res = delete_service_config(service_name)
+        return jsonify({
+            'success': True,
+            'result': res
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Delete failed: {str(e)}'
+        }), 500
 
 @app.route('/api/services/<service_name>/call_tool', methods=['POST'])
 async def mcp_call_tool(service_name):

@@ -284,12 +284,12 @@ def load_config_raw(filepath='mcp_conf.json'):
     with open(filepath, 'r', encoding='utf-8') as f:
         return f.read()
 
-def save_config_raw(config_content, filepath='mcp_conf.json'):
+def save_config_raw(config_content:str, filepath='mcp_conf.json'):
     """
     保存配置文件的原始内容
 
     Args:
-        config_content: 配置内容的字符串
+        config_content: 配置内容的JSON字符串
         filepath: 配置文件路径
 
     Returns:
@@ -475,6 +475,45 @@ def save_service_config(service_name, service_config_content, filepath='mcp_conf
         json.dump(config_data, f, indent=2, ensure_ascii=False)
 
     return {"success": True, "message": "Service configuration saved successfully"}
+
+def delete_service_config(service_name, filepath='mcp_conf.json'):
+    """ 
+    """
+    # 加载现有配置
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Configuration file not found: {filepath}")
+
+    with open(filepath, 'r', encoding='utf-8') as f:
+        config_data = json.load(f)
+    
+    # 查找服务ID
+    service_id = None
+    mcp_servers = config_data.get('mcpServers', {})
+
+    for sid, sconfig in mcp_servers.items():
+        if sid == service_name or sconfig.get('name') == service_name:
+            service_id = sid
+            break
+
+    if not service_id:
+        raise KeyError(f"Service '{service_name}' not found in configuration")
+    
+    # 备份原配置文件
+    backup_file = f'{filepath}.backup.{int(time.time())}'
+    try:
+        import shutil
+        shutil.copy2(filepath, backup_file)
+    except Exception:
+        pass  # 备份失败不影响保存
+    
+    # 更新服务配置
+    config_data['mcpServers'].pop(service_id)
+
+    # 保存配置
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(config_data, f, indent=2, ensure_ascii=False)
+
+    return {"success": True, "message": "Service deleted."}
 
 def main():
     lst_srv = load_conf()

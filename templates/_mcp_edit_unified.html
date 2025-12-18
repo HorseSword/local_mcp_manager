@@ -226,9 +226,18 @@
     }
 
     // 删除
-    function deleteService(){
+    async function deleteService() {
         let r = confirm('Are you sure to DELETE this MCP service?')
-        console.log(r);
+        if (r) {
+            url = `/api/services/${encodeURIComponent(serviceName)}/delete`;
+
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+            });
+        }
     }
 
     // 保存配置
