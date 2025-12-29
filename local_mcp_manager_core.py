@@ -83,14 +83,14 @@ class ProcessManager:
         try:
             if svc.get('is_alive', False):  # 如果外壳运行
                 if svc.get('tools', False):  # 如果有了工具列表
-                    if svc.get('tools')[0].get('status','') in ['LOADING']:
+                    if svc.get('tools')[0].get('mcp_status','') in ['LOADING']:
                         svc['mcp_status'] = 'LOADING'
                     else:
                         svc['mcp_status'] = 'ON'
                 else:
                     if svc.get('mcp_status',"") not in ['ERROR']:
                         svc['mcp_status'] = 'OFF'
-                        print(f"line 91: 准备启动mcp服务 {svc.get('name')}")
+                        # print(f"line 91: 准备启动mcp服务 {svc.get('name')}")
                         # asyncio.create_task(self.get_tools_by_name(svc.get('name')))  # TODO 并没有生效
             else:  # 如果外壳没有运行
                 svc['mcp_status'] = 'OFF'
@@ -232,10 +232,10 @@ class ProcessManager:
         if len(lst_svc)>0:
             svc = lst_svc[0]
             dict_res['tools'] = svc.get("tools", False)
-            if dict_res['tools'] and not force_reload:
-                pass
-            else:
-                dict_res['tools'] = [{'status':'LOADING'}] # 正在加载的状态
+            if dict_res['tools'] and not force_reload: # 如果已经有工具，且不强制刷新的话
+                pass  # 直接返回缓存结果
+            else:  # 否则读取工具明细
+                dict_res['tools'] = [{'mcp_status':'LOADING'}] # 正在加载的状态
                 if svc['host'].startswith("http"):
                     host = svc['host']
                 elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
@@ -248,9 +248,11 @@ class ProcessManager:
                 async with Client(dict_conf) as client:
                     try:
                         svc['tools'] = [t.model_dump() for t in await client.list_tools()]
+                        svc['mcp_status'] = 'ON'
                         dict_res['tools'] = svc['tools']
                     except:
                         svc['tools'] = [str(t) for t in await client.list_tools()]
+                        svc['mcp_status'] = 'ERROR'
                         dict_res['tools'] = svc['tools']
                     # dict_res['resources'] = [t.modeawait client.list_resources()
         

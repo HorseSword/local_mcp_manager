@@ -61,6 +61,12 @@
                             <div class="param-input-group">
                                 <input type="text" class="param-key" placeholder="key" name="param_key_1">
                                 <input type="text" class="param-value" placeholder="value" name="param_value_1">
+                                <select class="param-type" name="param_type_1" onchange="handleTypeChange(this)">
+                                    <option value="text" selected>Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="boolean">Boolean</option>
+                                    <option value="null">Null</option>
+                                </select>
                                 <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
                             </div>
                         </div>
@@ -101,6 +107,12 @@
             <div class="param-input-group">
                 <input type="text" class="param-key" placeholder="key" name="param_key_${paramCount}">
                 <input type="text" class="param-value" placeholder="value" name="param_value_${paramCount}">
+                <select class="param-type" name="param_type_${paramCount}" onchange="handleTypeChange(this)">
+                    <option value="text" selected>Text</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="null">Null</option>
+                </select>
                 <button type="button" class="btn-remove-param" onclick="removeParameter(${paramCount})">×</button>
             </div>
         `;
@@ -116,6 +128,29 @@
         }
     }
 
+    // 处理类型选择变化
+    function handleTypeChange(selectElement) {
+        const paramInputGroup = selectElement.closest('.param-input-group');
+        const valueInput = paramInputGroup.querySelector('.param-value');
+        const selectedType = selectElement.value;
+
+        if (selectedType === 'null') {
+            // Null类型：禁用输入框并显示"-"
+            valueInput.value = '-';
+            valueInput.disabled = true;
+            valueInput.style.backgroundColor = '#f5f5f5';
+            valueInput.style.cursor = 'not-allowed';
+        } else {
+            // 其他类型：恢复输入框
+            if (valueInput.value === '-') {
+                valueInput.value = '';
+            }
+            valueInput.disabled = false;
+            valueInput.style.backgroundColor = '';
+            valueInput.style.cursor = '';
+        }
+    }
+
     // 收集表单数据并转换为JSON
     function collectFormData() {
         const toolName = document.getElementById('tool-name').value.trim();
@@ -125,10 +160,38 @@
 
         paramPairs.forEach(pair => {
             const key = pair.querySelector('.param-key').value.trim();
-            const value = pair.querySelector('.param-value').value.trim();
+            const valueInput = pair.querySelector('.param-value');
+            const typeSelect = pair.querySelector('.param-type');
 
-            // 只有键和值都不为空时才添加到参数对象中
-            if (key && value) {
+            if (key) {
+                const paramType = typeSelect ? typeSelect.value : 'text';
+
+                // 根据类型转换值
+                let value;
+                if (paramType === 'null') {
+                    value = null;
+                } else if (paramType === 'boolean') {
+                    const rawValue = valueInput.value.trim().toLowerCase();
+                    if (rawValue === 'true' || rawValue === '1' || rawValue === 'yes') {
+                        value = true;
+                    } else if (rawValue === 'false' || rawValue === '0' || rawValue === 'no') {
+                        value = false;
+                    } else {
+                        // 如果输入不明确，默认为 true（非空字符串）或 false
+                        value = rawValue.length > 0;
+                    }
+                } else if (paramType === 'number') {
+                    const rawValue = valueInput.value.trim();
+                    if (rawValue) {
+                        value = Number(rawValue);
+                    } else {
+                        value = 0;
+                    }
+                } else {
+                    // text 类型，直接使用字符串值
+                    value = valueInput.value.trim();
+                }
+
                 parameters[key] = value;
             }
         });
@@ -229,6 +292,12 @@
                 <div class="param-input-group">
                     <input type="text" class="param-key" placeholder="key" name="param_key_1">
                     <input type="text" class="param-value" placeholder="value" name="param_value_1">
+                    <select class="param-type" name="param_type_1" onchange="handleTypeChange(this)">
+                        <option value="text" selected>Text</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="null">Null</option>
+                    </select>
                     <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
                 </div>
             </div>
