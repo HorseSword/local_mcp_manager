@@ -16,8 +16,10 @@ VERSION = 'v0.3.1'
 
 def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None):
     """
+    将 stdio 模式的MCP 代理为 httpstreamable 模式。
     Run MCP with npm / python, must work in stdio mode.
     
+    输出： streamableHTTP 模式。
     Output: in streamableHTTP mode.
     """
     if cwd is not None:
@@ -31,7 +33,6 @@ def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None
             name=name,
         )
         tar = local_proxy.run(transport='http', host=host, port=int(port))
-        return tar
     except:
         client = Client(conf)
         local_proxy = FastMCP.as_proxy(
@@ -39,16 +40,27 @@ def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None
             name=name,
         )
         tar = local_proxy.run(transport='http', host=host, port=int(port))
+    finally:
+        # 会停在 local_proxy.run 这一行，并不会向后执行
+        print(f"tar = {tar}")
         return tar
 
 class ProcessManager:
     """ 
+    运行于后台的 MCP 服务管理。
+    
     MCP Service Manager, background.
+    
     """
-    def __init__(self, services):
+    def __init__(self, services:list):
         self.VERSION = VERSION
         self.services = services  
         self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
+
+    async def create(self):
+        """ 
+        """
+        pass 
     
     def reload_conf(self, services=None):
         """ 
@@ -60,25 +72,67 @@ class ProcessManager:
         self.services = services  
         self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
 
+    # ---------- process control ----------
+
+    async def check_mcp_status(self, svc) -> str:
+        """ 
+        检查mcp的状态，异步。
+
+        过程中会修改 svc['mcp_status'] 属性，也会返回之。
+        """
+        try:
+            if svc.get('is_alive', False):  # 如果外壳运行
+                if svc.get('tools', False):  # 如果有了工具列表
+                    if svc.get('tools')[0].get('status','') in ['LOADING']:
+                        svc['mcp_status'] = 'LOADING'
+                    else:
+                        svc['mcp_status'] = 'ON'
+                else:
+                    if svc.get('mcp_status',"") not in ['ERROR']:
+                        svc['mcp_status'] = 'OFF'
+                        print(f"line 91: 准备启动mcp服务 {svc.get('name')}")
+                        # asyncio.create_task(self.get_tools_by_name(svc.get('name')))  # TODO 并没有生效
+            else:  # 如果外壳没有运行
+                svc['mcp_status'] = 'OFF'
+                if svc.get('tools', False):
+                    svc['tools'] = None
+        except:
+            svc['mcp_status'] = 'ERROR'
+        finally:
+            return svc['mcp_status']
+
     def refresh_svc_status(self):
         """ 
         Refresh is_alive status
         """
         for svc in self.services:
-            proc = svc.get("process")
-            alive = proc.is_alive() if isinstance(proc, mp.Process) else False
-            svc["is_alive"] = alive
+            svc["is_alive"] = self.check_svc_alive(svc)
+    
+    def check_svc_alive(self, svc):
+        """ 
+        检查服务 (svc) 的状态。
+        """
+        proc = svc.get("process")
+        is_alive = False
+        try:
+            is_alive = proc.is_alive() if isinstance(proc, mp.Process) else False
+            print(f"[{svc['name']}] {svc.get('process')}, is_alive = {is_alive}")
+        except:
+            is_alive = False
+        return is_alive
 
-    # ---------- process control ----------
     def _start_service(self, svc):
         """ 
         svc: dict 
         """
-        if svc["is_alive"]:
+        print(f"starting {svc['name']}")
+        # if svc["is_alive"]:
+        if self.check_svc_alive(svc):
             return
+        #
         # if olds not alive, clean 
         if isinstance(svc.get("process"), mp.Process):
-            if svc["process"].is_alive():
+            if self.check_svc_alive(svc):
                 return
             else:
                 try:
@@ -102,11 +156,14 @@ class ProcessManager:
                 ),
                 daemon=False,  # The typical service process does not recommend daemon, allowing for controlled exit.
             )
-            p.start()
             svc["process"] = p
-            svc["is_alive"] = True
+            svc["process"].start()
+            svc["is_alive"] = self.check_svc_alive(svc)
 
     def _stop_service(self, svc, timeout=3.0):
+        """ 
+        关闭具体的服务
+        """
         proc = svc.get("process")
         if not isinstance(proc, mp.Process):
             svc["is_alive"] = False
@@ -135,16 +192,20 @@ class ProcessManager:
             print(f"Stop service {svc['name']} error: {e}")
         finally:
             svc["is_alive"] = False
+            svc['mcp_status'] = 'STOPPED'
 
     def start_all_enabled_services(self):
         """
-        Start all 'is_alive' processes
+        Start all 'is_enabled' processes
         """
         for svc in self.services:
             if svc.get("is_enabled", False):
                 self._start_service(svc)
 
     def stop_all_running_services(self):
+        """
+        stop all services
+        """
         for svc in self.services:
             if svc.get("is_alive", False):
                 self._stop_service(svc)
@@ -155,43 +216,49 @@ class ProcessManager:
         """
         n_alive = 0
         for svc in self.services:
-            proc = svc.get("process")
-            alive = proc.is_alive() if isinstance(proc, mp.Process) else False
+            alive = self.check_svc_alive(svc)
             if alive:
                 n_alive += 1
         return n_alive
 
-    async def get_tools_by_name(self, svc_name):
+    async def get_tools_by_name(self, svc_name, force_reload=False):
         """
-        获取MCP介绍信息
+        获取MCP介绍信息(异步)
 
         返回 json 格式的结果
         """
-        dict_res = {}
+        dict_res = {'tools':[]}
         lst_svc = [s for s in self.services if s.get("name")==svc_name]
         if len(lst_svc)>0:
             svc = lst_svc[0]
-            if svc['host'].startswith("http"):
-                host = svc['host']
-            elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
-                host = 'http://127.0.0.1'
+            dict_res['tools'] = svc.get("tools", False)
+            if dict_res['tools'] and not force_reload:
+                pass
+            else:
+                dict_res['tools'] = [{'status':'LOADING'}] # 正在加载的状态
+                if svc['host'].startswith("http"):
+                    host = svc['host']
+                elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
+                    host = 'http://127.0.0.1'
 
-            dict_conf = {"mcp":{
-                "url": f"{host}:{svc['port']}/mcp"
-            }}
+                dict_conf = {"mcp":{
+                    "url": f"{host}:{svc['port']}/mcp"
+                }}
 
-            async with Client(dict_conf) as client:
-                try:
-                    dict_res['tools'] = [t.model_dump() for t in await client.list_tools()]
-                except:
-                    dict_res['tools'] = [str(t) for t in await client.list_tools()]
-                # dict_res['resources'] = [t.modeawait client.list_resources()
+                async with Client(dict_conf) as client:
+                    try:
+                        svc['tools'] = [t.model_dump() for t in await client.list_tools()]
+                        dict_res['tools'] = svc['tools']
+                    except:
+                        svc['tools'] = [str(t) for t in await client.list_tools()]
+                        dict_res['tools'] = svc['tools']
+                    # dict_res['resources'] = [t.modeawait client.list_resources()
         
         print(f"[get_tools_by_name] dict_res = {dict_res}")
         try:
-            return json.dumps(dict_res['tools'], indent=2, ensure_ascii=False)
+            return json.dumps(dict_res.get('tools',[]), indent=2, ensure_ascii=False)
         except:
-            return str(dict_res['tools'])
+            return str(dict_res.get('tools',[]))
     
     async def get_tools_all(self):
         """ 
@@ -229,6 +296,8 @@ class ProcessManager:
         print(f"[call_tool] dict_res = {dict_res}")
         return json.dumps(dict_res, ensure_ascii=False)
 
+#%%
+
 def load_conf(filepath = 'mcp_conf.json'):
     """
     加载配置文件的内容。
@@ -254,7 +323,7 @@ def load_conf(filepath = 'mcp_conf.json'):
             'host': ms_value.get("host", '127.0.0.1'),
             'cwd': ms_value.get("cwd", None),
             'port': ms_value.get("out_port", "null"),
-            "is_enabled": ms_value.get("isActive", True),
+            "is_enabled": ms_value.get("is_enabled", True),
             "is_alive": False,
         })
     return lst_mprocesses
@@ -350,7 +419,7 @@ def get_config_template():
                 "args": ["run", "script.py"],
                 "cwd": "path/to/your/code",
                 "out_port": 17001,
-                "isActive": True
+                "is_enabled": True
             }
         }
     }

@@ -13,9 +13,12 @@ from local_mcp_manager_core import ProcessManager, load_conf, VERSION, load_conf
 import webbrowser
 import sys
 import time
+import asyncio
 
 #%%
 app = Flask(__name__)
+task_queue = asyncio.Queue()
+_background_task = None
 
 # 全局进程管理器实例
 manager = None
@@ -28,6 +31,7 @@ def init_manager():
     if manager is None:
         services = load_conf()
         manager = ProcessManager(services=services)
+    return manager
 
 def get_manager():
     """
@@ -41,7 +45,9 @@ def get_manager():
     return g.manager
 
 @app.route('/')
-def index():
+async def index():
+    init_manager()
+    # asyncio.create_task(manager.get_tools_all())  # 无效
     return render_template('index.html')
 
 @app.route('/api/services/<service_name>/info', methods=['GET'])
@@ -58,6 +64,9 @@ async def show_mcp_info(service_name):
 
 @app.route('/api/all', methods=['GET'])
 async def mcp_get_all():
+    """ 
+    这个可以强制启动所有服务并刷新MCP缓存。
+    """
     init_manager()
     service_all = await manager.get_tools_all()
     return service_all
@@ -179,7 +188,7 @@ def add_config():
             "args": ["script.py"],
             "cwd": "",
             "out_port": next_port,
-            "isActive": True,
+            "is_enabled": True,
             "env": {},
             "type": "stdio",
             "url": "",
@@ -388,7 +397,7 @@ def save_service(service_name):
 #%%
 
 @app.route('/api/services', methods=['GET'])
-def get_services():
+async def get_services():
     """
     获取服务状态
 
@@ -396,7 +405,9 @@ def get_services():
     """
     init_manager()
     manager.refresh_svc_status()
-    
+    for svc in manager.services:
+        await manager.check_mcp_status(svc)  # 刷新MCP服务状态，重要
+
     services_data = []
     for svc in manager.services:
         services_data.append({
@@ -405,7 +416,8 @@ def get_services():
             'out_type': svc['out_type'],
             'port': svc['port'],
             'is_enabled': svc['is_enabled'],
-            'is_alive': svc['is_alive']
+            'is_alive': svc['is_alive'],
+            'mcp_status': svc.get('mcp_status','UNKNOWN'),
         })
     
     return jsonify({
@@ -414,7 +426,7 @@ def get_services():
     })
 
 @app.route('/api/services/start-all', methods=['POST'])
-def start_all_services():
+async def start_all_services():
     """
     启动所有启用的服务
     
@@ -422,7 +434,7 @@ def start_all_services():
     init_manager()
     manager.start_all_enabled_services()
     manager.refresh_svc_status()
-    
+
     return jsonify({
         'success': True,
         'message': 'Batch startup command has been executed.'
@@ -589,6 +601,8 @@ def delayed_startup():
     print("已自动执行批量启动")
 
 if __name__ == "__main__":
+    # 
+    # 启动参数
     import argparse
     parser = argparse.ArgumentParser(description="Local MCP Manager")
     parser.add_argument("--host", default='127.0.0.1', help="Server IP")
@@ -607,7 +621,7 @@ if __name__ == "__main__":
     # startup_thread = threading.Thread(target=delayed_startup, daemon=True)
     # startup_thread.start()
     #
-    init_manager()
+    manager = init_manager()
     manager.start_all_enabled_services()
     #
     try:

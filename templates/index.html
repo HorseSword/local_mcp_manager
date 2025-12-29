@@ -30,7 +30,7 @@
                     <th>Out Type</th>
                     <th>Out Port</th>
                     <th>Batch Start Enabled</th>
-                    <th>Is Alive</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -69,6 +69,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             refreshServices();
             startAutoRefresh();
+            listMcpTools();
         });
         
         // 显示消息
@@ -131,8 +132,8 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>
-                        <span class="${service.is_alive ? 'srv-running' : 'srv-stopped'}" 
-                            ${service.is_alive? `onclick="infoService('${service.name}')"`:""}>
+                        <span class="${service.mcp_status=='ON' ? 'srv-running' : 'srv-stopped'}" 
+                            ${service.mcp_status=='ON' ? `onclick="infoService('${service.name}')"`:""}>
                             ${service.name}
                         </span>
                     </td>
@@ -148,8 +149,9 @@
                         </span>
                     </td>
                     <td>
-                        <span class="${service.is_alive ? 'status-yes' : 'status-no'}">
-                            ${service.is_alive ? 'Yes' : 'No'}
+                        <span class="${service.mcp_status=='ON' ? 'status-yes' : 'status-no'}">
+                            <!-- ${service.is_alive ? 'Yes' : 'No'} -->
+                            ${service.mcp_status}
                         </span>
                     </td>
                     <td class="actions">
@@ -198,8 +200,9 @@
                 setLoading(false);
             }
         }
-
-        // 批量启动服务
+        /**
+        /* 批量启动服务
+        **/
         async function startAllServices() {
             setLoading(true);
             try {
@@ -278,6 +281,22 @@
                 }
             } catch (error) {
                 showMessage('Network Error: ' + error.message, 'error');
+            }
+        }
+
+        // 列出MCP工具列表，并同步触发MCP工具执行
+        async function listMcpTools(){
+            try {
+                const response = await fetch(`/api/all`);
+                if (!response.ok) {
+                   throw new Error(`HTTP error! status: ${response.status}`);
+                }    
+                const result = await response.text(); // 获取响应体为字符串
+                return result;
+            } 
+            catch (error) {
+                console.error('请求失败:', error);
+                throw error; // 可根据需要选择 re-throw 或返回默认值
             }
         }
 

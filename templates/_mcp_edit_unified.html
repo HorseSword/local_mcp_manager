@@ -82,7 +82,7 @@
     "args": ["run", "script.py"],
     "cwd": "working/directory",
     "out_port": 17001,
-    "isActive": true,
+    "is_enabled": true,
     "env": {"VAR": "value"},
     "type": "stdio/sse/streamableHttp",
     "url": "http://localhost:port/sse",
@@ -91,11 +91,11 @@
 }</pre>
                 {% if edit_type == 'add_service' %}
                 <p><strong>Required fields:</strong> out_port (unique for each service)</p>
-                <p><strong>Optional fields:</strong> name, description, command, args, cwd, env, type, url, headers, isActive, host</p>
+                <p><strong>Optional fields:</strong> name, description, command, args, cwd, env, type, url, headers, is_enabled, host</p>
                 <p><strong>Note:</strong> The service name will be used as the service ID. Make sure it's unique.</p>
                 {% else %}
                 <p><strong>Required fields:</strong> out_port (unique for each service)</p>
-                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, isActive, host, name, description, command, args</p>
+                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, is_enabled, host, name, description, command, args</p>
                 {% endif %}
                 {% else %}
                 <h4>Configuration Format:</h4>
@@ -108,7 +108,7 @@
             "args": ["run", "script.py"],
             "cwd": "working/directory",
             "out_port": 17001,
-            "isActive": true,
+            "is_enabled": true,
             "env": {"VAR": "value"},
             "type": "stdio/sse/streamableHttp",
             "url": "http://localhost:port/sse",
@@ -117,7 +117,7 @@
     }
 }</pre>
                 <p><strong>Required fields:</strong> out_port (unique for each service)</p>
-                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, isActive</p>
+                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, is_enabled</p>
                 {% endif %}
 
                 <h4>Field Descriptions:</h4>
@@ -128,7 +128,7 @@
                     <li><strong>args:</strong> Array of arguments for the command</li>
                     <li><strong>cwd:</strong> Working directory for the service</li>
                     <li><strong>out_port:</strong> Unique port number for the service</li>
-                    <li><strong>isActive:</strong> Whether the service should be auto-started</li>
+                    <li><strong>is_enabled:</strong> Whether the service should be auto-started</li>
                     <li><strong>env:</strong> Environment variables for the service</li>
                     <li><strong>type:</strong> Service type: stdio, sse, or streamableHttp</li>
                     <li><strong>url:</strong> URL for SSE or HTTP services</li>

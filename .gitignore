@@ -6,6 +6,7 @@ dist/
 wheels/
 useless/
 test/
+backup/
 *.egg-info
 *.ipynb
 mcp_conf.json

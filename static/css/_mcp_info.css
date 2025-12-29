@@ -1,6 +1,6 @@
 
 /* 主容器：纵向排列 (标题在上，内容在下) */
-.container_1 {
+.container_main {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -19,8 +19,8 @@
 
 /* 左侧：文本显示区 */
 .left-panel {
-    width: 35%; 
-    padding: 20px;
+    /* width: 35%;  */
+    padding: 10px;
     background-color: #fff;
     border-right: 1px solid #ddd;
     overflow-y: auto; /* 内容过多时垂直滚动 */
@@ -30,8 +30,8 @@
 
 /* 右侧：文本显示区 */
 .right-panel {
-    width: 25%; 
-    padding: 20px;
+    /* width: 25%;  */
+    padding: 10px;
     background-color: #fff;
     border-right: 1px solid #ddd;
     overflow-y: auto; /* 内容过多时垂直滚动 */
@@ -67,7 +67,7 @@
 }
 
 /* 头部样式 */
-.header_ {
+.header-section {
     flex: 0 0 auto; /* 高度固定 */
     padding: 10px 0;
     border-bottom: 1px solid #ddd;
@@ -75,7 +75,7 @@
     text-align: center;
 }
 
-.header_ h1 {
+.header-section h1 {
     margin: 0;
     font-size: 1.5em;
     color: #333;
