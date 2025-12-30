@@ -268,7 +268,7 @@ class ProcessManager:
         return str(results)
         
     async def call_tool(self, svc_name:str, tool_name:str, tool_params:str):
-        """ 
+        """
         调用工具
         """
         dict_res = {}
@@ -290,9 +290,83 @@ class ProcessManager:
                     dict_res['tool_result'] = tool_result.model_dump()
                 except:
                     dict_res['tool_result'] = str(tool_result)
-        
+
         print(f"[call_tool] dict_res = {dict_res}")
         return json.dumps(dict_res, ensure_ascii=False)
+
+    async def ai_chat(self, svc_name: str, message: str):
+        """
+        AI聊天接口 - 使用OpenAI API调用MCP工具
+
+        这是一个预留接口，未来可以集成OpenAI API来实现智能工具调用。
+        当前实现：返回模拟数据
+
+        Args:
+            svc_name: 服务名称
+            message: 用户消息
+
+        Returns:
+            JSON字符串，包含AI响应和工具调用结果
+        """
+        import random
+        import time
+
+        # 模拟处理延迟
+        await asyncio.sleep(1)
+
+        # 获取服务的工具列表
+        lst_svc = [s for s in self.services if s.get("name") == svc_name]
+        if len(lst_svc) == 0:
+            return json.dumps({
+                'success': False,
+                'error': f'Service {svc_name} not found'
+            }, ensure_ascii=False)
+
+        svc = lst_svc[0]
+        tools = svc.get('tools', [])
+
+        if not tools:
+            return json.dumps({
+                'success': False,
+                'error': f'No tools available for service {svc_name}'
+            }, ensure_ascii=False)
+
+        # 模拟AI响应 - 未来这里会调用OpenAI API
+        # 当前随机选择一个工具进行模拟调用
+        tool_name = random.choice(tools)['name']
+
+        # 模拟工具调用
+        mock_tool_call = {
+            'tool_name': tool_name,
+            'parameters': {
+                'query': message,
+                'mock_param': 'This is a simulated call'
+            },
+            'result': {
+                'status': 'success',
+                'data': f'Mock result for tool: {tool_name}\nUser message: {message}\n\nNote: This is a placeholder response. The actual AI integration using OpenAI API will be implemented in future updates.',
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }
+
+        # 模拟AI文本响应
+        ai_response = f"""I understood you want to: {message}
+
+I've called the tool '{tool_name}' for you. This is a simulated response to demonstrate the UI layout.
+
+The actual AI-powered tool calling feature will be available in future updates, which will:
+1. Use OpenAI API to understand your intent
+2. Automatically select and call the appropriate MCP tools
+3. Process tool results and provide intelligent responses
+
+For now, you can use the 'Manual Call' tab to directly invoke tools.
+"""
+
+        return json.dumps({
+            'success': True,
+            'tool_calls': [mock_tool_call],
+            'response': ai_response
+        }, ensure_ascii=False)
 
 #%%
 

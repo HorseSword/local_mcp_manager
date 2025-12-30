@@ -138,6 +138,45 @@ async def mcp_call_tool(service_name):
             'error': f'Tool call failed: {str(e)}'
         }), 500
 
+@app.route('/api/services/<service_name>/ai_chat', methods=['POST'])
+async def mcp_ai_chat(service_name):
+    """
+    AI聊天接口 - 使用AI智能调用MCP工具
+    """
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data provided'
+            }), 400
+
+        message = data.get('message')
+
+        if not message:
+            return jsonify({
+                'success': False,
+                'error': 'Message is required'
+            }), 400
+
+        # 初始化管理器
+        init_manager()
+
+        # 调用AI聊天
+        ai_result_json = await manager.ai_chat(service_name, message)
+
+        # 解析结果
+        ai_result = json.loads(ai_result_json)
+
+        return jsonify(ai_result)
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'AI chat failed: {str(e)}'
+        }), 500
+
 @app.route('/api/config/edit')
 def edit_config():
     """

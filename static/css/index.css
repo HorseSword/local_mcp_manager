@@ -110,7 +110,7 @@ tbody tr:hover {
     font-size: 12px;
 }
 
-.message {
+.toast_message {
     margin-top: -20px;
     padding: 10px;
     border-radius: 4px;
@@ -122,13 +122,13 @@ tbody tr:hover {
     transform: translateX(-50%);
 }
 
-.message.success {
+.toast_message.success {
     background-color: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
 }
 
-.message.error {
+.toast_message.error {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;

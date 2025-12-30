@@ -20,7 +20,7 @@
             <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
             <button class="btn btn-danger" onclick="reboot()">Reboot</button>
         </div>
-        <div id="message" class="message"></div>
+        <div id="message" class="toast_message"></div>
         
         <table id="servicesTable">
             <thead>
@@ -78,7 +78,7 @@
             const messageEl = document.getElementById('message');
             messageEl.style.transition = 'opacity 100ms ease';
             messageEl.textContent = text;
-            messageEl.className = `message ${type}`;
+            messageEl.className = `toast_message ${type}`;
             messageEl.style.display = 'block';
             // messageEl.style.top = '-100px';
             messageEl.style.opacity = '0';
