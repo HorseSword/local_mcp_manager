@@ -662,6 +662,7 @@
         
         // 页面获得焦点时重新开始自动刷新
         window.addEventListener('focus', function() {
+            console.log('FOCUSED')
             if (!refreshInterval || !mcpInterval) {
                 startAutoRefresh();
             }

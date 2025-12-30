@@ -8,7 +8,39 @@
     </title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_user_edit.css') }}">
     <style>
-    
+        .template-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .template-selector label {
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+        .template-selector select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+        .template-selector select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .template-description {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body style="overflow: hidden;">
@@ -33,7 +65,7 @@
             <div class="mcp-edit-subtitle">
                 <div class="mcp-edit-info">
                     <div class="info-item">
-                        <span class="info-label">Info:</span> Edit the new service configuration below. The service will be added to your existing configuration.
+                        <span class="info-label">Info:</span> Select a template and edit the configuration below.
                     </div>
                 </div>
             </div>
@@ -48,7 +80,6 @@
             {% if edit_type == 'service' %}
             <button class="mcp-edit-btn mcp-edit-btn-delete" onclick="deleteService()">Delete MCP</button>
             {% endif %}
-            <!-- <button class="mcp-edit-btn mcp-edit-btn-basic" onclick="closeEditor()">Close</button> -->
         </div>
     </div>
 
@@ -56,6 +87,19 @@
     <div class="mcp-edit-content">
         <!-- 左侧编辑区域 -->
         <div class="mcp-edit-editor-section">
+            <!-- 模板选择器 (仅新增服务时显示) -->
+            {% if edit_type == 'add_service' %}
+            <div class="template-selector">
+                <label for="template-select">Template:</label>
+                <select id="template-select" onchange="applyTemplate()">
+                    <option value="" disabled selected>-- Select a template --</option>
+                    <option value="stdio-python">stdio (Python/uvx)</option>
+                    <option value="stdio-npx">stdio (npx/Node.js)</option>
+                    <option value="http-sse">HTTP/SSE</option>
+                </select>
+            </div>
+            {% endif %}
+
             <!-- 编辑器头部 -->
             <div class="mcp-edit-editor-header">
                 <div class="mcp-edit-editor-title">{% if edit_type == 'service' %}Service Configuration{% else %}mcp_conf.json{% endif %}</div>
@@ -63,7 +107,7 @@
             </div>
 
             <!-- JSON 编辑器 -->
-            <textarea id="json-editor" class="mcp-edit-json-editor" placeholder="{% if edit_type == 'service' %}Enter service configuration here...{% elif edit_type == 'add_service' %}Enter new service configuration here...{% else %}Enter your MCP configuration here...{% endif %}">{{ config_content | default('') }}</textarea>
+            <textarea id="json-editor" class="mcp-edit-json-editor" placeholder="{% if edit_type == 'service' %}Enter service configuration here...{% elif edit_type == 'add_service' %}Select a template above or enter service configuration here...{% else %}Enter your MCP configuration here...{% endif %}">{{ config_content | default('') }}</textarea>
 
             <!-- 错误消息 -->
             <div id="error-message" class="mcp-edit-error-message"></div>
@@ -72,31 +116,27 @@
         <!-- 右侧帮助区域 -->
         <div class="mcp-edit-help-section">
             <div class="mcp-edit-help-header">Configuration Reference</div>
-            <div class="mcp-edit-help-content">
+            <div class="mcp-edit-help-content" id="help-content">
                 {% if edit_type == 'service' or edit_type == 'add_service' %}
-                <h4>{% if edit_type == 'add_service' %}New {% endif %}Service Configuration Format:</h4>
-                <pre>{
-    "name": "Display Name",
-    "description": "Service description",
-    "command": "uv/npx/python",
-    "args": ["run", "script.py"],
-    "cwd": "working/directory",
-    "out_port": 17001,
-    "is_enabled": true,
-    "env": {"VAR": "value"},
-    "type": "stdio/sse/streamableHttp",
-    "url": "http://localhost:port/sse",
-    "headers": {},
-    "host": "127.0.0.1"
-}</pre>
-                {% if edit_type == 'add_service' %}
-                <p><strong>Required fields:</strong> out_port (unique for each service)</p>
-                <p><strong>Optional fields:</strong> name, description, command, args, cwd, env, type, url, headers, is_enabled, host</p>
-                <p><strong>Note:</strong> The service name will be used as the service ID. Make sure it's unique.</p>
-                {% else %}
-                <p><strong>Required fields:</strong> out_port (unique for each service)</p>
-                <p><strong>Optional fields:</strong> cwd, env, type, url, headers, is_enabled, host, name, description, command, args</p>
-                {% endif %}
+                <div id="help-default">
+                    <h4>Select a Template</h4>
+                    <p>Select a template from the dropdown above to see the configuration format and required fields.</p>
+
+                    <h4>Template Types:</h4>
+                    <ul>
+                        <li><strong>stdio (Python/uvx):</strong> For Python-based MCP servers using uv or uvx</li>
+                        <li><strong>stdio (npx):</strong> For Node.js-based MCP servers using npx</li>
+                        <li><strong>HTTP/SSE:</strong> For MCP servers exposed via HTTP or Server-Sent Events</li>
+                    </ul>
+
+                    <h4>Common Fields:</h4>
+                    <ul>
+                        <li><strong>name:</strong> Display name (optional)</li>
+                        <li><strong>description:</strong> Service description (optional)</li>
+                        <li><strong>out_port:</strong> Unique port number (required)</li>
+                        <li><strong>is_enabled:</strong> Auto-start on manager start (optional, default: true)</li>
+                    </ul>
+                </div>
                 {% else %}
                 <h4>Configuration Format:</h4>
                 <pre>{
@@ -119,22 +159,6 @@
                 <p><strong>Required fields:</strong> out_port (unique for each service)</p>
                 <p><strong>Optional fields:</strong> cwd, env, type, url, headers, is_enabled</p>
                 {% endif %}
-
-                <h4>Field Descriptions:</h4>
-                <ul>
-                    <li><strong>name:</strong> Display name for the service</li>
-                    <li><strong>description:</strong> Brief description of what the service does</li>
-                    <li><strong>command:</strong> Command to run the service (uv, npx, python, etc.)</li>
-                    <li><strong>args:</strong> Array of arguments for the command</li>
-                    <li><strong>cwd:</strong> Working directory for the service</li>
-                    <li><strong>out_port:</strong> Unique port number for the service</li>
-                    <li><strong>is_enabled:</strong> Whether the service should be auto-started</li>
-                    <li><strong>env:</strong> Environment variables for the service</li>
-                    <li><strong>type:</strong> Service type: stdio, sse, or streamableHttp</li>
-                    <li><strong>url:</strong> URL for SSE or HTTP services</li>
-                    <li><strong>headers:</strong> Additional HTTP headers</li>
-                    <li><strong>host:</strong> Host address for the service</li>
-                </ul>
             </div>
         </div>
     </div>
@@ -142,6 +166,152 @@
 
 <script>
     console.log("MCP Edit page loaded - Type: {% if edit_type == 'service' %}Service{% else %}Configuration{% endif %}");
+
+    // Template definitions
+    const templates = {
+        'stdio-python': {
+            name: 'stdio (Python/uvx)',
+            config: {
+                name: "My Python MCP",
+                description: "Description of your Python MCP service",
+                command: "uvx",
+                args: ["run", "your-package-name"],
+                cwd: "D:/path/to/your/project",
+                out_port: 17001,
+                is_enabled: true,
+                env: {},
+                type: "stdio",
+                host: "127.0.0.1"
+            },
+            help: `
+                <h4>stdio (Python/uvx) Configuration</h4>
+                <pre>{
+    "name": "My Python MCP",
+    "description": "Description of your Python MCP service",
+    "command": "uvx",
+    "args": ["run", "your-package-name"],
+    "cwd": "D:/path/to/your/project",
+    "out_port": 17001,
+    "is_enabled": true,
+    "env": {},
+    "type": "stdio",
+    "host": "127.0.0.1"
+}</pre>
+                <p><strong>Required fields:</strong></p>
+                <ul>
+                    <li><strong>out_port:</strong> Unique port number (17001-17999 recommended)</li>
+                    <li><strong>command:</strong> Command to run (usually "uvx" or "python")</li>
+                    <li><strong>args:</strong> Array of arguments (e.g., ["run", "package-name"] for uvx)</li>
+                    <li><strong>cwd:</strong> Working directory (important for Python projects)</li>
+                </ul>
+                <p><strong>Optional fields:</strong></p>
+                <ul>
+                    <li><strong>name:</strong> Display name</li>
+                    <li><strong>description:</strong> Service description</li>
+                    <li><strong>is_enabled:</strong> Auto-start (default: true)</li>
+                    <li><strong>env:</strong> Environment variables (e.g., {"API_KEY": "xxx"})</li>
+                    <li><strong>host:</strong> Bind address (default: "127.0.0.1")</li>
+                </ul>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li>uvx: <code>{"command": "uvx", "args": ["run", "mcp-server-git"]}</code></li>
+                    <li>python: <code>{"command": "python", "args": ["server.py"], "cwd": "D:/project"}</code></li>
+                </ul>
+            `
+        },
+        'stdio-npx': {
+            name: 'stdio (npx/Node.js)',
+            config: {
+                name: "My Node.js MCP",
+                description: "Description of your Node.js MCP service",
+                command: "npx",
+                args: ["-y", "@modelcontextprotocol/server-your-package"],
+                out_port: 17002,
+                is_enabled: true,
+                env: {},
+                type: "stdio",
+                host: "127.0.0.1"
+            },
+            help: `
+                <h4>stdio (npx/Node.js) Configuration</h4>
+                <pre>{
+    "name": "My Node.js MCP",
+    "description": "Description of your Node.js MCP service",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-your-package"],
+    "out_port": 17002,
+    "is_enabled": true,
+    "env": {},
+    "type": "stdio",
+    "host": "127.0.0.1"
+}</pre>
+                <p><strong>Required fields:</strong></p>
+                <ul>
+                    <li><strong>out_port:</strong> Unique port number (17001-17999 recommended)</li>
+                    <li><strong>command:</strong> Usually "npx"</li>
+                    <li><strong>args:</strong> Array of arguments (e.g., ["-y", "@modelcontextprotocol/server-xxx"])</li>
+                </ul>
+                <p><strong>Optional fields:</strong></p>
+                <ul>
+                    <li><strong>name:</strong> Display name</li>
+                    <li><strong>description:</strong> Service description</li>
+                    <li><strong>is_enabled:</strong> Auto-start (default: true)</li>
+                    <li><strong>env:</strong> Environment variables</li>
+                    <li><strong>host:</strong> Bind address (default: "127.0.0.1")</li>
+                </ul>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li>GitHub: <code>{"args": ["-y", "@modelcontextprotocol/server-github"]}</code></li>
+                    <li>Filesystem: <code>{"args": ["-y", "@modelcontextprotocol/server-filesystem", "D:/allowed/path"]}</code></li>
+                </ul>
+            `
+        },
+        'http-sse': {
+            name: 'HTTP/SSE',
+            config: {
+                name: "My HTTP MCP",
+                description: "Description of your HTTP/SSE MCP service",
+                url: "http://localhost:3000/sse",
+                out_port: 17003,
+                is_enabled: true,
+                type: "sse",
+                headers: {},
+                host: "127.0.0.1"
+            },
+            help: `
+                <h4>HTTP/SSE Configuration</h4>
+                <pre>{
+    "name": "My HTTP MCP",
+    "description": "Description of your HTTP/SSE MCP service",
+    "url": "http://localhost:3000/sse",
+    "out_port": 17003,
+    "is_enabled": true,
+    "type": "sse",
+    "headers": {},
+    "host": "127.0.0.1"
+}</pre>
+                <p><strong>Required fields:</strong></p>
+                <ul>
+                    <li><strong>out_port:</strong> Unique port number (17001-17999 recommended)</li>
+                    <li><strong>url:</strong> Full URL to the MCP service endpoint</li>
+                    <li><strong>type:</strong> Service type: "sse" or "streamableHttp"</li>
+                </ul>
+                <p><strong>Optional fields:</strong></p>
+                <ul>
+                    <li><strong>name:</strong> Display name</li>
+                    <li><strong>description:</strong> Service description</li>
+                    <li><strong>is_enabled:</strong> Auto-start (default: true)</li>
+                    <li><strong>headers:</strong> HTTP headers (e.g., {"Authorization": "Bearer xxx"})</li>
+                    <li><strong>host:</strong> Bind address (default: "127.0.0.1")</li>
+                </ul>
+                <p><strong>Service Types:</strong></p>
+                <ul>
+                    <li><strong>sse:</strong> Server-Sent Events (recommended for most cases)</li>
+                    <li><strong>streamableHttp:</strong> Streaming HTTP</li>
+                </ul>
+            `
+        }
+    };
 
     // 简单的全局变量
     let originalContent = '';
@@ -154,6 +324,37 @@
     {% else %}
     const editType = 'config';
     {% endif %}
+
+    // Apply template
+    function applyTemplate() {
+        const select = document.getElementById('template-select');
+        const templateKey = select.value;
+
+        if (!templateKey || !templates[templateKey]) {
+            return;
+        }
+
+        const template = templates[templateKey];
+        const editor = document.getElementById('json-editor');
+
+        // Apply template config to editor
+        editor.value = JSON.stringify(template.config, null, 2);
+        currentContent = editor.value;
+
+        // Update help content
+        updateHelpContent(template.help);
+
+        // Validate JSON
+        validateJSON();
+    }
+
+    // Update help content
+    function updateHelpContent(helpHTML) {
+        const helpContent = document.getElementById('help-content');
+        if (helpContent) {
+            helpContent.innerHTML = helpHTML;
+        }
+    }
 
     // 获取当前编辑器内容
     function getCurrentContent() {
@@ -222,6 +423,15 @@
             const editor = document.getElementById('json-editor');
             editor.value = originalContent;
             validateJSON();
+
+            // Reset template selector
+            {% if edit_type == 'add_service' %}
+            const templateSelect = document.getElementById('template-select');
+            if (templateSelect) {
+                templateSelect.value = "";
+                updateHelpContent(document.getElementById('help-default').outerHTML);
+            }
+            {% endif %}
         }
     }
 

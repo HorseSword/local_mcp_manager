@@ -82,16 +82,11 @@ class ProcessManager:
         """
         try:
             if svc.get('is_alive', False):  # 如果外壳运行
-                if svc.get('tools', False):  # 如果有了工具列表
-                    if svc.get('tools')[0].get('mcp_status','') in ['LOADING']:
-                        svc['mcp_status'] = 'LOADING'
-                    else:
+                if len(svc.get('tools', []))>0:  # 如果有了工具列表
+                    if svc.get('mcp_status','') in ['LOADING']:
                         svc['mcp_status'] = 'ON'
-                else:
-                    if svc.get('mcp_status',"") not in ['ERROR']:
-                        svc['mcp_status'] = 'OFF'
-                        # print(f"line 91: 准备启动mcp服务 {svc.get('name')}")
-                        # asyncio.create_task(self.get_tools_by_name(svc.get('name')))  # TODO 并没有生效
+                    elif svc.get('mcp_status',"") in ['ERROR', 'OFF']:
+                        pass # 不变
             else:  # 如果外壳没有运行
                 svc['mcp_status'] = 'OFF'
                 if svc.get('tools', False):
@@ -99,7 +94,7 @@ class ProcessManager:
         except:
             svc['mcp_status'] = 'ERROR'
         finally:
-            return svc['mcp_status']
+            return svc.get('mcp_status','')
 
     def refresh_svc_status(self):
         """ 
@@ -228,14 +223,15 @@ class ProcessManager:
         返回 json 格式的结果
         """
         dict_res = {'tools':[]}
-        lst_svc = [s for s in self.services if s.get("name")==svc_name]
+        lst_svc = [svc for svc in self.services if svc.get("name") == svc_name]
         if len(lst_svc)>0:
             svc = lst_svc[0]
             dict_res['tools'] = svc.get("tools", False)
             if dict_res['tools'] and not force_reload: # 如果已经有工具，且不强制刷新的话
                 pass  # 直接返回缓存结果
             else:  # 否则读取工具明细
-                dict_res['tools'] = [{'mcp_status':'LOADING'}] # 正在加载的状态
+                dict_res['tools'] = [] # 正在加载的状态
+                svc['mcp_status'] = 'LOADING'
                 if svc['host'].startswith("http"):
                     host = svc['host']
                 elif svc['host'] in ['127.0.0.1', '0.0.0.0']:
@@ -256,7 +252,7 @@ class ProcessManager:
                         dict_res['tools'] = svc['tools']
                     # dict_res['resources'] = [t.modeawait client.list_resources()
         
-        print(f"[get_tools_by_name] dict_res = {dict_res}")
+        # print(f"[get_tools_by_name] dict_res = {dict_res}")
         try:
             return json.dumps(dict_res.get('tools',[]), indent=2, ensure_ascii=False)
         except:
