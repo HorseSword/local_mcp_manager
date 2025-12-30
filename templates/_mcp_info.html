@@ -8,6 +8,113 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_mcp_info.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_json.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/basic_tabs.css') }}">
+    <style>
+        /* 右侧标签页容器 */
+        .right-tabs-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 标签页导航 */
+        .tabs-navigation {
+            display: flex;
+            gap: 0;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            background-color: #f8f9fa;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            background-color: #e9ecef;
+            color: #212529;
+        }
+
+        .tab-button.active {
+            background-color: #fff;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        /* 标签页内容容器 */
+        .tabs-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: #fff;
+        }
+
+        /* 标签页面板 */
+        .tab-pane {
+            display: none;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* 手动调用容器 - 左右布局 */
+        .manual-call-container {
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .manual-call-container .param-panel {
+            flex: 1;
+            border-right: 1px solid #ddd;
+        }
+
+        .manual-call-container .result-panel {
+            flex: 1;
+            padding: 10px;
+            background-color: #fff;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        /* AI调用容器 */
+        .ai-call-container {
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .ai-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background-color: #f8f9fa;
+        }
+
+        .ai-placeholder h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .ai-placeholder p {
+            color: #6c757d;
+        }
+    </style>
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; box-sizing: border-box;">
 <div class="container_main" style="width: 100%; height: 100%; overflow: hidden; box-sizing: border-box;">
@@ -24,73 +131,144 @@
             <p>Tool info</p>
                 <pre><code style = "white-space: pre-wrap; word-break: break-word; font-size: clamp(14px, 1rem, 24px)">{{ serviceInfo }}</code></pre>
             </div>
-<!--             
-         <div class="tabs" style="width: 35%;">
-            <button class="tab-btn active" data-tab="tab1">Tools (json)</button>
-        </div>
 
-        <div class="tab-content active" id="tab1">
-            
-        </div> -->
+        <!-- 右侧：标签页区域 (64%宽度) -->
+        <div class="right-tabs-container" style="width: 70%;">
 
-        <!-- 中间：参数填报区 -->
-        <form class="param-panel" id="tool-form">
-
-            <!-- 工具名称输入区域 -->
-            <div class="tool-name-section">
-                <div class="form-group">
-                    <label for="tool-name">Tool Name</label>
-                    <input type="text" id="tool-name" name="tool_name" placeholder="Input tool name." required>
-                </div>
+            <!-- 标签页导航 -->
+            <div class="tabs-navigation">
+                <button class="tab-button active" data-tab="manual" onclick="switchTab('manual')">
+                    Manual Call
+                </button>
+                <button class="tab-button" data-tab="ai" onclick="switchTab('ai')">
+                    AI Call
+                </button>
             </div>
 
-            <!-- 参数区域 -->
-            <div class="params-section">
-                <div class="section-header">
-                    <h4>Parameters</h4>
-                    <button type="button" class="btn-add-param" onclick="addParameter()">
-                        + Add Parameter
-                    </button>
+            <!-- 标签页内容 -->
+            <div class="tabs-content">
+
+                <!-- 标签页1: 手动调用 -->
+                <div class="tab-pane active" id="tab-manual">
+                    <div class="manual-call-container">
+                        <!-- 左侧：参数填报区 -->
+                        <form class="param-panel" id="tool-form">
+
+                            <!-- 工具名称输入区域 -->
+                            <div class="tool-name-section">
+                                <div class="form-group">
+                                    <label for="tool-name">Tool Name</label>
+                                    <input type="text" id="tool-name" name="tool_name" placeholder="Input tool name." required>
+                                </div>
+                            </div>
+
+                            <!-- 参数区域 -->
+                            <div class="params-section">
+                                <div class="section-header">
+                                    <h4>Parameters</h4>
+                                    <button type="button" class="btn-add-param" onclick="addParameter()">
+                                        + Add Parameter
+                                    </button>
+                                </div>
+
+                                <!-- 参数输入区域 (可滚动) -->
+                                <div class="form-scroll-area">
+                                    <div id="parameters-container">
+                                        <!-- 默认参数对 -->
+                                        <div class="param-pair" data-param-id="1">
+                                            <div class="param-input-group">
+                                                <input type="text" class="param-key" placeholder="key" name="param_key_1">
+                                                <input type="text" class="param-value" placeholder="value" name="param_value_1">
+                                                <select class="param-type" name="param_type_1" onchange="handleTypeChange(this)">
+                                                    <option value="text" selected>Text</option>
+                                                    <option value="number">Number</option>
+                                                    <option value="boolean">Boolean</option>
+                                                    <option value="null">Null</option>
+                                                </select>
+                                                <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 按钮区域 (固定在底部) -->
+                            <div class="form-footer">
+                                <button type="button" class="btn-basic btn-reset" onclick="resetForm()">Reset</button>
+                                <button type="button" class="btn-basic btn-submit" onclick="submitForm()">Submit</button>
+                            </div>
+
+                        </form>
+
+                        <!-- 右侧：结果区 (可滚动) -->
+                        <div class="result-panel">
+                            {{ serviceResult | default('Submit to get results.') }}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 参数输入区域 (可滚动) -->
-                <div class="form-scroll-area">
-                    <div id="parameters-container">
-                        <!-- 默认参数对 -->
-                        <div class="param-pair" data-param-id="1">
-                            <div class="param-input-group">
-                                <input type="text" class="param-key" placeholder="key" name="param_key_1">
-                                <input type="text" class="param-value" placeholder="value" name="param_value_1">
-                                <select class="param-type" name="param_type_1" onchange="handleTypeChange(this)">
-                                    <option value="text" selected>Text</option>
-                                    <option value="number">Number</option>
-                                    <option value="boolean">Boolean</option>
-                                    <option value="null">Null</option>
-                                </select>
-                                <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
+                <!-- 标签页2: AI调用 -->
+                <div class="tab-pane" id="tab-ai">
+                    <div class="ai-call-container">
+                        <!-- 对话区域 (可滚动) -->
+                        <div class="chat-messages" id="chat-messages">
+                            <!-- 欢迎消息 -->
+                            <div class="message ai-message">
+                                <div class="message-bubble ai-response">
+                                    <div class="message-content">
+                                        Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 输入区域 (固定在底部) -->
+                        <div class="chat-input-area">
+                            <textarea
+                                id="ai-input"
+                                class="chat-input"
+                                placeholder="Describe what you want to do... (e.g., 'Search for files in D:/projects')"
+                                rows="3"
+                                onkeydown="handleChatKeydown(event)"
+                            ></textarea>
+                            <div class="input-actions">
+                                <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+                                <button type="button" class="btn-send" onclick="sendAIMessage()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                    Send
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
-
-            <!-- 按钮区域 (固定在底部) -->
-            <div class="form-footer">
-                <button type="button" class="btn-basic btn-reset" onclick="resetForm()">Reset</button>
-                <button type="button" class="btn-basic btn-submit" onclick="submitForm()">Submit</button>
-            </div>
-
-        </form>
-
-        <!-- 右侧：结果区 (可滚动) -->
-        <div class="right-panel" style="width: 30%;">
-            {{ serviceResult | default('Submit to get results.') }}
         </div>
 
     </div>
 </div>
 
 <script>
+    // 标签页切换函数
+    function switchTab(tabName) {
+        // 移除所有按钮的active状态
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // 隐藏所有标签页内容
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+
+        // 激活选中的标签页
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
     // 参数计数器
     let paramCount = 1;
 
@@ -217,7 +395,7 @@
         const serviceName = document.querySelector('.header-section h1').textContent;
 
         // 显示加载状态
-        const resultPanel = document.querySelector('.right-panel');
+        const resultPanel = document.querySelector('.result-panel');
         if (resultPanel) {
             resultPanel.innerHTML = `
                 <div style="padding: 20px; text-align: center;">
@@ -307,7 +485,7 @@
         paramCount = 1;
 
         // 清空结果区域
-        const resultPanel = document.querySelector('.right-panel');
+        const resultPanel = document.querySelector('.result-panel');
         if (resultPanel) {
             resultPanel.innerHTML = 'Submit to get results.';
         }
