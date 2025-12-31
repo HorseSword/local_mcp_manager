@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCP Service Info - {{ serviceName | default('Unknown') }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_mcp_info.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/_json.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/basic_tabs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+    
     <style>
         /* 右侧标签页容器 */
         .right-tabs-container {
@@ -220,7 +222,7 @@
             color: #6c757d;
         }
 
-        .btn-send {
+        .btn-send-message {
             display: flex;
             align-items: center;
             gap: 6px;
@@ -235,17 +237,17 @@
             transition: background-color 0.2s;
         }
 
-        .btn-send:hover {
+        .btn-send-message:hover {
             background-color: #0056b3;
         }
 
-        .btn-send:disabled {
+        .btn-send-message:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
             opacity: 0.6;
         }
 
-        .btn-send svg {
+        .btn-send-message svg {
             width: 16px;
             height: 16px;
         }
@@ -297,9 +299,8 @@
 
         <!-- 左侧：文本区 (可滚动) -->
          <div class="left-panel" style="width: 35%;">
-            <p>Tool info</p>
-                <pre><code style = "white-space: pre-wrap; word-break: break-word; font-size: clamp(14px, 1rem, 24px)">{{ serviceInfo }}</code></pre>
-            </div>
+            <pre><code style = "white-space: pre-wrap; word-break: break-word; font-size: clamp(14px, 1rem, 24px)">{{ serviceInfo }}</code></pre>
+        </div>
 
         <!-- 右侧：标签页区域 (64%宽度) -->
         <div class="right-tabs-container" style="width: 70%;">
@@ -384,9 +385,7 @@
                             <!-- 欢迎消息 -->
                             <div class="message ai-message">
                                 <div class="message-bubble ai-response">
-                                    <div class="message-content">
-                                        Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.
-                                    </div>
+                                    <div class="message-content">Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.</div>
                                 </div>
                             </div>
                         </div>
@@ -396,19 +395,30 @@
                             <textarea
                                 id="ai-input"
                                 class="chat-input"
-                                placeholder="Describe what you want to do... (e.g., 'Search for files in D:/projects')"
+                                placeholder="Describe what you want to do..."
                                 rows="3"
                                 onkeydown="handleChatKeydown(event)"
                             ></textarea>
                             <div class="input-actions">
                                 <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
-                                <button type="button" class="btn-send" onclick="sendAIMessage()">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                    </svg>
-                                    Send
-                                </button>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn-send-message" onclick="clearChat()" style="background-color: #6c757d;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        </svg>
+                                        Clear
+                                    </button>
+                                    <button type="button" class="btn-send-message" onclick="sendAIMessage()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                        </svg>
+                                        Send
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -458,6 +468,8 @@
         }
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user-message';
+        messageDiv.setAttribute('data-role', 'user');
+        messageDiv.setAttribute('data-content', content);
         messageDiv.innerHTML = `
             <div class="message-bubble">
                 <div class="message-content">${escapeHtml(content)}</div>
@@ -479,6 +491,12 @@
 
         const paramsStr = JSON.stringify(parameters, null, 2);
         const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+
+        // 存储元数据用于历史记录
+        messageDiv.setAttribute('data-role', 'tool-call');
+        messageDiv.setAttribute('data-tool-name', toolName);
+        messageDiv.setAttribute('data-parameters', JSON.stringify(parameters));
+        messageDiv.setAttribute('data-result', JSON.stringify(result));
 
         messageDiv.innerHTML = `
             <div class="message-bubble ai-tool">
@@ -506,6 +524,8 @@
         }
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message ai-message';
+        messageDiv.setAttribute('data-role', 'assistant');
+        messageDiv.setAttribute('data-content', content);
         messageDiv.innerHTML = `
             <div class="message-bubble ai-response">
                 <div class="message-content">${escapeHtml(content)}</div>
@@ -569,16 +589,22 @@
         if (!message) {
             return;
         }
+        //
+        let lst_msg = getChatHistory();
 
         // 添加用户消息
         addUserMessage(message);
+
+        // 打印历史对话，用于调试
+        lst_msg.push({'role':'user','content':message});
+        console.log(lst_msg);
 
         // 清空输入框
         input.value = '';
 
         // 禁用发送
         isProcessing = true;
-        document.querySelector('.btn-send').disabled = true;
+        document.querySelector('.btn-send-message').disabled = true;
 
         // 显示加载指示器
         showTypingIndicator();
@@ -594,7 +620,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message
+                    messages: lst_msg
                 })
             });
 
@@ -629,8 +655,113 @@
         } finally {
             // 恢复发送按钮
             isProcessing = false;
-            document.querySelector('.btn-send').disabled = false;
+            document.querySelector('.btn-send-message').disabled = false;
         }
+    }
+
+    // 清空对话
+    function clearChat() {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+
+        // 清空所有消息，保留欢迎消息
+        chatMessages.innerHTML = `
+            <div class="message ai-message">
+                <div class="message-bubble ai-response">
+                    <div class="message-content">Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.</div>
+                </div>
+            </div>
+        `;
+
+        console.log('Chat cleared');
+    }
+
+    // 获取对话历史（OpenAI API格式）
+    function getChatHistory() {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return [];
+        }
+
+        const history = [];
+        const messages = chatMessages.querySelectorAll('.message');
+
+        // 跳过欢迎消息（没有data-role属性的）
+        messages.forEach(msg => {
+            const role = msg.getAttribute('data-role');
+            if (!role) return; // 跳过欢迎消息
+
+            if (role === 'user') {
+                // 用户消息
+                const content = msg.getAttribute('data-content');
+                history.push({
+                    role: 'user',
+                    content: content
+                });
+            } else if (role === 'assistant') {
+                // AI响应消息
+                try{
+                    const content = msg.getAttribute('data-content');
+                    history.push({
+                        role: 'assistant',
+                        content: content
+                    });
+                }
+                catch(err){
+                    //
+                }
+            } else if (role === 'tool-call') {
+                try{
+                    // 工具调用消息 - 需要拆分为assistant的tool调用和tool的响应
+                    const toolName = msg.getAttribute('data-tool-name');
+                    const parameters = msg.getAttribute('data-parameters');
+                    const result = msg.getAttribute('data-result');
+
+                    // 生成唯一的tool_call_id
+                    const toolCallId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+                    // 添加assistant的tool调用
+                    /* history.push({
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                            {
+                                id: toolCallId,
+                                type: 'function',
+                                function: {
+                                    name: toolName,
+                                    arguments: JSON.stringify(JSON.parse(parameters))
+                                }
+                            }
+                        ]
+                    }); 
+                    */
+                    // 添加tool的响应
+                    // history.push({
+                    //    role: 'tool',
+                    //    tool_call_id: toolCallId,
+                    //    content: JSON.stringify(JSON.parse(result))
+                    // });
+                }
+                catch{
+                    
+                }
+            }
+        });
+
+        return history;
+    }
+
+    // 导出对话历史到控制台（方便调试）
+    function exportChatHistory() {
+        const history = getChatHistory();
+        console.log('Chat History (OpenAI format):');
+        console.log(JSON.stringify(history, null, 2));
+        return history;
     }
 
     // 参数计数器

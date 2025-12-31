@@ -10,6 +10,7 @@ backup/
 *.egg-info
 *.ipynb
 mcp_conf.json
+basic_conf.json
 mcp_conf.json.*
 *.ps1
 

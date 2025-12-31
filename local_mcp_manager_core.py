@@ -5,9 +5,12 @@ import json
 import time
 import signal
 import sys
+import shutil
+from pathlib import Path
 from fastmcp import FastMCP
 from fastmcp import Client
 from fastmcp.server.proxy import ProxyClient
+from openai import OpenAI
 
 #
 VERSION = 'v0.3.1'
@@ -44,6 +47,23 @@ def mcp_stdio_to_http(json_str, host:str, port:int, name:str='MCP', cwd:str=None
         # 会停在 local_proxy.run 这一行，并不会向后执行
         print(f"tar = {tar}")
         return tar
+
+def mcp_to_openai(lst_mcp:list):
+    """ 
+    将 MCP 格式的工具文档转换为 openai 格式的。
+    """
+    lst_tools = []
+    for mcp_tool in lst_mcp:
+        dict_tool = {
+            "type":"function",
+            "function": {
+                'name': mcp_tool.get('name'),
+                'description': mcp_tool.get("description","null"),
+                'parameters': mcp_tool.get("inputSchema")
+            }
+        }
+        lst_tools.append(dict_tool)
+    return lst_tools
 
 class ProcessManager:
     """ 
@@ -294,79 +314,142 @@ class ProcessManager:
         print(f"[call_tool] dict_res = {dict_res}")
         return json.dumps(dict_res, ensure_ascii=False)
 
-    async def ai_chat(self, svc_name: str, message: str):
+    async def ai_chat(self, svc_name: str, lst_messages: list):
         """
         AI聊天接口 - 使用OpenAI API调用MCP工具
 
-        这是一个预留接口，未来可以集成OpenAI API来实现智能工具调用。
-        当前实现：返回模拟数据
-
         Args:
             svc_name: 服务名称
-            message: 用户消息
+            lst_messages: 用户消息列表, openai-api格式
 
         Returns:
             JSON字符串，包含AI响应和工具调用结果
         """
-        import random
-        import time
-
-        # 模拟处理延迟
-        await asyncio.sleep(1)
+        print(f"【core|ai_chat】svc_name = {svc_name}, lst_messages = {lst_messages}")
 
         # 获取服务的工具列表
-        lst_svc = [s for s in self.services if s.get("name") == svc_name]
-        if len(lst_svc) == 0:
+        lst_svc = [svc for svc in self.services if svc.get("name","no_name") == svc_name]
+        if len(lst_svc) <= 0:
             return json.dumps({
                 'success': False,
                 'error': f'Service {svc_name} not found'
             }, ensure_ascii=False)
-
-        svc = lst_svc[0]
-        tools = svc.get('tools', [])
-
-        if not tools:
+        else:
+            svc = lst_svc[0]
+        
+        lst_tools = svc.get('tools', [])
+        if not lst_tools:
             return json.dumps({
                 'success': False,
                 'error': f'No tools available for service {svc_name}'
             }, ensure_ascii=False)
+        
+        lst_msg_selected = [
+            msg for msg in lst_messages if msg['role'] in ['user', 'assistant', 'system'] and len(msg['content'])>0
+        ]
 
-        # 模拟AI响应 - 未来这里会调用OpenAI API
-        # 当前随机选择一个工具进行模拟调用
-        tool_name = random.choice(tools)['name']
+        try:
+            with open('basic_conf.json','r') as f:
+                dict_conf = json.load(f)
+                openai_url = dict_conf['openai-url']
+                openai_key = dict_conf['openai-key']
+                openai_model = dict_conf['openai-model']
+        except Exception as e:
+            return json.dumps({
+                'success': False,
+                'error': f'Error while read openai config {e}'
+            }, ensure_ascii=False)
 
-        # 模拟工具调用
-        mock_tool_call = {
-            'tool_name': tool_name,
-            'parameters': {
-                'query': message,
-                'mock_param': 'This is a simulated call'
-            },
-            'result': {
-                'status': 'success',
-                'data': f'Mock result for tool: {tool_name}\nUser message: {message}\n\nNote: This is a placeholder response. The actual AI integration using OpenAI API will be implemented in future updates.',
-                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
-            }
-        }
+        # 调用工具
+        client = OpenAI(
+            api_key=openai_key,
+            base_url=openai_url,
+        )
 
-        # 模拟AI文本响应
-        ai_response = f"""I understood you want to: {message}
+        n_round = 0
+        MAX_ROUND = 3
+        lst_tool_calls = []
+        ai_response = ''
+        while n_round < MAX_ROUND:
+            n_round += 1
+            #
+            try:
+                if n_round < MAX_ROUND:
+                    response = client.chat.completions.create(
+                        model = openai_model,
+                        messages=[{"role":"system","content":"You can use tools to help user when necessary."}] + lst_msg_selected,
+                        tools=mcp_to_openai(lst_tools),
+                    )
+                else: # 最后一次 不再使用工具了，避免死循环
+                    response = client.chat.completions.create(
+                        model = openai_model,
+                        messages = lst_msg_selected,
+                    )  
+                #
+                # 检查返回模式
+                if response.model_dump()['choices'][0]['finish_reason'] in ['tool_calls']: # 工具调用
+                    lst_tool_results = []
+                    for call in response.model_dump()['choices'][0]['message']['tool_calls']:
+                        tool_name = call['function']['name']
+                        tool_params = call['function'].get("arguments","{}")
+                        
+                        tool_res = await self.call_tool(
+                            svc_name=svc_name, 
+                            tool_name=tool_name, 
+                            tool_params=tool_params
+                        )
+                        lst_tool_calls.append({
+                            'tool_name': tool_name, 
+                            'parameters': tool_params, 
+                            'result': str(tool_res)
+                        })
+                        lst_tool_results.append(tool_res)
+                    lst_msg_selected.append({"role":"system","content":str(lst_tool_results)})
 
-I've called the tool '{tool_name}' for you. This is a simulated response to demonstrate the UI layout.
-
-The actual AI-powered tool calling feature will be available in future updates, which will:
-1. Use OpenAI API to understand your intent
-2. Automatically select and call the appropriate MCP tools
-3. Process tool results and provide intelligent responses
-
-For now, you can use the 'Manual Call' tab to directly invoke tools.
-"""
+                else:  # 普通对话
+                    ai_response = response.model_dump()['choices'][0]['message']['content']
+                    break
+            except:
+                pass
 
         return json.dumps({
             'success': True,
-            'tool_calls': [mock_tool_call],
+            'tool_calls': lst_tool_calls,
             'response': ai_response
         }, ensure_ascii=False)
+
+#%%
+
+def backup_config_file(filepath: str) -> bool:
+    """
+    备份配置文件到 backup 文件夹
+
+    Args:
+        filepath: 配置文件路径
+
+    Returns:
+        bool: 备份是否成功
+    """
+    if not os.path.exists(filepath):
+        return False
+
+    try:
+        # 创建 backup 文件夹（如果不存在）
+        backup_dir = Path('backup')
+        backup_dir.mkdir(exist_ok=True)
+
+        # 生成备份文件名
+        original_name = Path(filepath).name
+        timestamp = int(time.time())
+        backup_filename = f"{original_name}.backup.{timestamp}"
+        backup_path = backup_dir / backup_filename
+
+        # 复制文件
+        shutil.copy2(filepath, backup_path)
+        return True
+    except Exception as e:
+        print(f"Warning: Failed to backup config file: {e}")
+        return False
 
 #%%
 
@@ -461,13 +544,7 @@ def save_config_raw(config_content:str, filepath='mcp_conf.json'):
             ports.add(port)
 
     # 备份原配置文件
-    if os.path.exists(filepath):
-        backup_file = f'{filepath}.backup.{int(time.time())}'
-        try:
-            import shutil
-            shutil.copy2(filepath, backup_file)
-        except Exception:
-            pass  # 备份失败不影响保存
+    backup_config_file(filepath)
 
     # 保存新配置
     with open(filepath, 'w', encoding='utf-8') as f:
@@ -601,12 +678,7 @@ def save_service_config(service_name, service_config_content, filepath='mcp_conf
             raise ValueError(f"Port {new_port} is already used by service '{sid}'")
 
     # 备份原配置文件
-    backup_file = f'{filepath}.backup.{int(time.time())}'
-    try:
-        import shutil
-        shutil.copy2(filepath, backup_file)
-    except Exception:
-        pass  # 备份失败不影响保存
+    backup_config_file(filepath)
 
     # 更新服务配置
     config_data['mcpServers'][service_id] = new_service_config
@@ -640,12 +712,7 @@ def delete_service_config(service_name, filepath='mcp_conf.json'):
         raise KeyError(f"Service '{service_name}' not found in configuration")
     
     # 备份原配置文件
-    backup_file = f'{filepath}.backup.{int(time.time())}'
-    try:
-        import shutil
-        shutil.copy2(filepath, backup_file)
-    except Exception:
-        pass  # 备份失败不影响保存
+    backup_config_file(filepath)
     
     # 更新服务配置
     config_data['mcpServers'].pop(service_id)

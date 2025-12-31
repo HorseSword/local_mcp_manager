@@ -7,18 +7,20 @@
     <title>Local MCP Manager</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
 </head>
 <body>
 
     <div class="container">
         <h1>Local MCP Manager</h1>
         <div class="header">
-            <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button>
-            <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button>
-            <button class="btn btn-secondary" onclick="refreshWindow()">Refresh</button>
+            <button class="btn btn-danger" onclick="reboot()">Reboot</button>
+            <!-- <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button> -->
+            <!-- <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button> -->
             <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
             <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
-            <button class="btn btn-danger" onclick="reboot()">Reboot</button>
+            <button class="btn btn-primary" onclick="refreshWindow()">Refresh</button>
+            
         </div>
         <div id="message" class="toast_message"></div>
         
@@ -29,7 +31,7 @@
                     <th>In Type</th>
                     <th>Out Type</th>
                     <th>Out Port</th>
-                    <th>Batch Start Enabled</th>
+                    <th>Enabled</th>
                     <th>MCP Status</th>
                     <th>Actions</th>
                 </tr>
@@ -142,12 +144,10 @@
                     <td>${service.out_type}</td>
                     <td>${service.port}</td>
                     <td>
-                        <span class="${service.is_enabled ? 'status-yes' : 'status-no'}" 
-                              style="cursor: pointer;" 
-                              onclick="toggleEnabled('${service.name}')"
-                              title="Click to switch status.">
-                            ${service.is_enabled ? 'Yes' : 'No'}
-                        </span>
+                        <label class="switch">
+                            <input type="checkbox" ${service.is_enabled ? 'checked' : ''} onchange="toggleEnabled('${service.name}')">
+                            <span class="slider"></span>
+                        </label>
                     </td>
                     <td>
                         <span class="${service.mcp_status=='ON' ? 'status-yes' : 'status-no'}">
@@ -156,7 +156,7 @@
                         </span>
                     </td>
                     <td class="actions">
-                        <button class="btn ${service.is_alive ? 'btn-disabled':'btn-primary' } btn-sm" 
+                        <!-- <button class="btn ${service.is_alive ? 'btn-disabled':'btn-primary' } btn-sm" 
                                 ${service.is_alive? "":`onclick="startService('${service.name}')"`}
                                 ${service.is_alive ? 'disabled' : ''}>
                             Start
@@ -165,11 +165,11 @@
                                 ${service.is_alive? `onclick="stopService('${service.name}')"`:""}
                                 ${!service.is_alive ? 'disabled' : ''}>
                             Stop
-                        </button>
+                        </button> 
                         <button class="btn ${service.is_alive? 'btn-secondary':'btn-disabled'} btn-sm" 
                                 ${service.is_alive? `onclick="infoService('${service.name}')"`:""}>
                             Info
-                        </button>
+                        </button> -->
                         <button class="btn btn-secondary btn-sm .edit-btn" 
                                 onclick="editService('${service.name}')">
                             Edit
@@ -192,6 +192,7 @@
                 if (data.success) {
                     showMessage(data.message);
                     await refreshServices();
+                    location.reload(); // 用于重新刷新状态
                 } else {
                     showMessage('Reboot finished.', 'error');
                 }

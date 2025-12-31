@@ -93,10 +93,16 @@ async def mcp_delete(service_name):
 async def mcp_call_tool(service_name):
     """
     调用指定的工具。
+
+    重要参数：
+    - tool_name: str
+    - parameters: object。
     """
+    
     try:
         # 获取请求数据
         data = request.get_json()
+        print(f"【mcp_call_tool】{data}")
         if not data:
             return jsonify({
                 'success': False,
@@ -152,9 +158,9 @@ async def mcp_ai_chat(service_name):
                 'error': 'No JSON data provided'
             }), 400
 
-        message = data.get('message')
+        lst_msg = data.get('messages')
 
-        if not message:
+        if not lst_msg:
             return jsonify({
                 'success': False,
                 'error': 'Message is required'
@@ -164,7 +170,7 @@ async def mcp_ai_chat(service_name):
         init_manager()
 
         # 调用AI聊天
-        ai_result_json = await manager.ai_chat(service_name, message)
+        ai_result_json = await manager.ai_chat(service_name, lst_msg)
 
         # 解析结果
         ai_result = json.loads(ai_result_json)
@@ -587,6 +593,13 @@ def toggle_service_enabled(service_name):
     # 找到对应服务
     for svc in manager.services:
         if svc['name'] == service_name:
+            #
+            if True:  # 同步操作后台服务
+                if svc['is_enabled']:
+                    stop_service(service_name)
+                else:
+                    start_service(service_name)
+            #
             svc['is_enabled'] = not svc['is_enabled']
             return jsonify({
                 'success': True,
