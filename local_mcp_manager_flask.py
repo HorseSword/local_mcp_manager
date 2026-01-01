@@ -8,7 +8,7 @@ import multiprocessing as mp
 import threading
 import os
 import json
-from flask import Flask, render_template, jsonify, request, g
+from flask import Flask, render_template, jsonify, request, g, Response, stream_with_context
 from local_mcp_manager_core import ProcessManager, load_conf, VERSION, load_config_raw, save_config_raw, get_config_template, load_service_config, save_service_config, delete_service_config
 import webbrowser
 import sys
@@ -181,6 +181,97 @@ async def mcp_ai_chat(service_name):
         return jsonify({
             'success': False,
             'error': f'AI chat failed: {str(e)}'
+        }), 500
+
+@app.route('/api/services/<service_name>/ai_chat_stream', methods=['POST'])
+async def mcp_ai_chat_stream(service_name):
+    """
+    AI聊天流式接口 - 使用SSE增量返回工具调用结果
+    """
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data provided'
+            }), 400
+
+        lst_msg = data.get('messages')
+
+        if not lst_msg:
+            return jsonify({
+                'success': False,
+                'error': 'Message is required'
+            }), 400
+
+        # 初始化管理器
+        init_manager()
+
+        # 使用队列在线程间传递数据
+        import queue
+        result_queue = queue.Queue()
+
+        # 在线程中运行异步生成器
+        async def run_stream():
+            try:
+                async for chunk in manager.ai_chat_stream(service_name, lst_msg):
+                    result_queue.put(chunk)
+                # 发送完成信号
+                result_queue.put(None)
+            except Exception as e:
+                error_msg = json.dumps({
+                    'type': 'error',
+                    'message': f'Stream error: {str(e)}'
+                }, ensure_ascii=False)
+                result_queue.put(error_msg)
+                result_queue.put(None)
+
+        # 在新线程中运行
+        import threading
+        def run_in_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(run_stream())
+            finally:
+                loop.close()
+
+        thread = threading.Thread(target=run_in_thread, daemon=True)
+        thread.start()
+
+        # 定义同步生成器
+        def generate():
+            try:
+                while True:
+                    chunk = result_queue.get()
+                    if chunk is None:  # 完成信号
+                        break
+                    # SSE 格式: data: <json>\n\n
+                    yield f"data: {chunk}\n\n"
+            except GeneratorExit:
+                pass
+            except Exception as e:
+                error_msg = json.dumps({
+                    'type': 'error',
+                    'message': f'Generator error: {str(e)}'
+                }, ensure_ascii=False)
+                yield f"data: {error_msg}\n\n"
+
+        # 返回 SSE 流
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no'
+            }
+        )
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'AI chat stream failed: {str(e)}'
         }), 500
 
 @app.route('/api/config/edit')

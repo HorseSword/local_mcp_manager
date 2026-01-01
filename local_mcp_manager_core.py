@@ -418,6 +418,122 @@ class ProcessManager:
             'response': ai_response
         }, ensure_ascii=False)
 
+    async def ai_chat_stream(self, svc_name: str, lst_messages: list):
+        """
+        AI聊天流式接口 - 使用OpenAI API调用MCP工具，增量返回结果
+
+        Args:
+            svc_name: 服务名称
+            lst_messages: 用户消息列表, openai-api格式
+
+        Yields:
+            JSON字符串，每次工具调用或AI响应后返回
+        """
+        print(f"【core|ai_chat_stream】svc_name = {svc_name}, lst_messages = {lst_messages}")
+
+        # 获取服务的工具列表
+        lst_svc = [svc for svc in self.services if svc.get("name","no_name") == svc_name]
+        if len(lst_svc) <= 0:
+            yield json.dumps({
+                'type': 'error',
+                'message': f'Service {svc_name} not found'
+            }, ensure_ascii=False)
+            return
+        else:
+            svc = lst_svc[0]
+
+        lst_tools = svc.get('tools', [])
+        if not lst_tools:
+            yield json.dumps({
+                'type': 'error',
+                'message': f'No tools available for service {svc_name}'
+            }, ensure_ascii=False)
+            return
+
+        lst_msg_selected = [
+            msg for msg in lst_messages if msg['role'] in ['user', 'assistant', 'system'] and len(msg['content'])>0
+        ]
+
+        try:
+            with open('basic_conf.json','r') as f:
+                dict_conf = json.load(f)
+                openai_url = dict_conf['openai_url']
+                openai_key = dict_conf['openai_key']
+                openai_model = dict_conf['openai_model']
+        except Exception as e:
+            yield json.dumps({
+                'type': 'error',
+                'message': f'Error while read openai config {e}'
+            }, ensure_ascii=False)
+            return
+
+        # 调用工具
+        client = OpenAI(
+            api_key=openai_key,
+            base_url=openai_url,
+        )
+
+        n_round = 0
+        MAX_ROUND = 3
+        while n_round < MAX_ROUND:
+            n_round += 1
+            try:
+                if n_round < MAX_ROUND:
+                    response = client.chat.completions.create(
+                        model = openai_model,
+                        messages=[{"role":"system","content":"You can use tools to help user when necessary."}] + lst_msg_selected,
+                        tools=mcp_to_openai(lst_tools),
+                    )
+                else: # 最后一次 不再使用工具了，避免死循环
+                    response = client.chat.completions.create(
+                        model = openai_model,
+                        messages = lst_msg_selected,
+                    )
+                #
+                # 检查返回模式
+                if response.model_dump()['choices'][0]['finish_reason'] in ['tool_calls']: # 工具调用
+                    lst_tool_results = []
+                    for call in response.model_dump()['choices'][0]['message']['tool_calls']:
+                        tool_name = call['function']['name']
+                        tool_params = call['function'].get("arguments","{}")
+
+                        tool_res = await self.call_tool(
+                            svc_name=svc_name,
+                            tool_name=tool_name,
+                            tool_params=tool_params
+                        )
+
+                        # 增量返回每个工具调用结果
+                        yield json.dumps({
+                            'type': 'tool_call',
+                            'tool_name': tool_name,
+                            'parameters': tool_params,
+                            'result': str(tool_res)
+                        }, ensure_ascii=False)
+
+                        lst_tool_results.append(tool_res)
+                    lst_msg_selected.append({"role":"system","content":str(lst_tool_results)})
+
+                else:  # 普通对话
+                    ai_response = response.model_dump()['choices'][0]['message']['content']
+                    # 返回最终AI响应
+                    yield json.dumps({
+                        'type': 'response',
+                        'content': ai_response
+                    }, ensure_ascii=False)
+                    break
+            except Exception as e:
+                yield json.dumps({
+                    'type': 'error',
+                    'message': f'Error in round {n_round}: {str(e)}'
+                }, ensure_ascii=False)
+                break
+
+        # 返回完成信号
+        yield json.dumps({
+            'type': 'done'
+        }, ensure_ascii=False)
+
 #%%
 
 def backup_config_file(filepath: str) -> bool:
