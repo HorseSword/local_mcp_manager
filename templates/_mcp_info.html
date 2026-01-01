@@ -132,7 +132,7 @@
 
         /* 消息气泡 */
         .chat-messages .message-bubble {
-            max-width: 70%;
+            max-width: 80%;
             padding: 12px 16px;
             border-radius: 12px;
             word-wrap: break-word;
@@ -161,7 +161,12 @@
 
         .chat-messages .message-content {
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.2;
+        }
+
+        /* 用户消息和AI响应消息需要保留换行 */
+        .chat-messages .user-message .message-content,
+        .chat-messages .ai-response .message-content {
             white-space: pre-wrap;
         }
 
@@ -179,6 +184,23 @@
             display: block;
             margin-bottom: 4px;
             color: #e65100;
+        }
+
+        /* 工具调用内容样式优化 - 减少纵向间距 */
+        .chat-messages .ai-tool .message-content {
+            line-height: 1.3;
+            white-space: normal; /* 覆盖默认的 pre-wrap，避免保留换行符产生的间距 */
+        }
+
+        .chat-messages .ai-tool .message-content > div {
+            margin-bottom: 6px;
+            margin-top: 6px;
+        }
+
+        .chat-messages .ai-tool .message-content pre {
+            margin: 0;
+            line-height: 1.4;
+            white-space: pre-wrap; /* 只在 pre 标签内保留换行 */
         }
 
         /* 输入区域 */
@@ -504,9 +526,9 @@
                     <strong>🔧 Calling Tool: ${escapeHtml(toolName)}</strong>
                 </div>
                 <div class="message-content">
-                    <div style="margin-bottom: 8px;"><strong>Parameters:</strong></div>
+                    <div><strong>Parameters:</strong></div>
                     <pre style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto;">${escapeHtml(paramsStr)}</pre>
-                    <div style="margin-top: 12px; margin-bottom: 8px;"><strong>Result:</strong></div>
+                    <div><strong>Result:</strong></div>
                     <pre style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${escapeHtml(resultStr)}</pre>
                 </div>
             </div>
@@ -748,7 +770,7 @@
                     // });
                 }
                 catch{
-                    
+
                 }
             }
         });

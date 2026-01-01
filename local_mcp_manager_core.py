@@ -351,9 +351,9 @@ class ProcessManager:
         try:
             with open('basic_conf.json','r') as f:
                 dict_conf = json.load(f)
-                openai_url = dict_conf['openai-url']
-                openai_key = dict_conf['openai-key']
-                openai_model = dict_conf['openai-model']
+                openai_url = dict_conf['openai_url']
+                openai_key = dict_conf['openai_key']
+                openai_model = dict_conf['openai_model']
         except Exception as e:
             return json.dumps({
                 'success': False,
@@ -722,6 +722,30 @@ def delete_service_config(service_name, filepath='mcp_conf.json'):
         json.dump(config_data, f, indent=2, ensure_ascii=False)
 
     return {"success": True, "message": "Service deleted."}
+
+class basic_config:
+    """ 
+    """
+    def __init__(self):
+        self.cfg = {}
+    
+    def save_cfg(self):
+        """ 
+        """
+        with open('basic_conf.json','w+') as f:
+            json.dump(self.cfg, f, indent=4, ensure_ascii=False)
+    
+    def load_openai_cfg(self):
+        try:
+            with open('basic_conf.json','r') as f:
+                dict_conf = json.load(f)
+                self.cfg.update({
+                    'openai_url': dict_conf['openai_url'],
+                    'openai_key': dict_conf['openai_key'],
+                    'openai_model': dict_conf['openai_model'],
+                })
+        except Exception as e:
+            pass
 
 def main():
     lst_srv = load_conf()
