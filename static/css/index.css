@@ -16,8 +16,16 @@ body {
 
 .header {
     display: flex;
-    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.header-left,
+.header-right {
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -114,9 +122,17 @@ input:disabled + .slider {
     cursor: not-allowed;
 }
 
+.td-center {
+    display: flex;
+    gap: 5px;
+    justify-content: center; 
+}
+
 .actions {
     display: flex;
     gap: 5px;
+    /* text-align: right; */
+    justify-content: flex-end; 
 }
 
 

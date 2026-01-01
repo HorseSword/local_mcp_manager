@@ -14,13 +14,17 @@
     <div class="container">
         <h1>Local MCP Manager</h1>
         <div class="header">
-            <button class="btn btn-danger" onclick="reboot()">Reboot</button>
-            <!-- <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button> -->
-            <!-- <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button> -->
-            <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
-            <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
-            <button class="btn btn-primary" onclick="refreshWindow()">Refresh</button>
-            
+            <div class="header-left">
+                <button class="btn btn-secondary" onclick="settings()">Settings</button>
+                <!-- <button class="btn btn-primary" onclick="startAllServices()">Batch Start</button> -->
+                <!-- <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button> -->
+                <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
+                <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="refreshWindow()">Refresh</button>
+                <button class="btn btn-danger" onclick="reboot()">Reboot</button>
+            </div>
         </div>
         <div id="message" class="toast_message"></div>
         
@@ -33,7 +37,7 @@
                     <th>Out Port</th>
                     <th>Enabled</th>
                     <th>MCP Status</th>
-                    <th>Actions</th>
+                    <th style="text-align:right">Actions</th>
                 </tr>
             </thead>
             <tbody id="servicesBody">
@@ -155,7 +159,7 @@
                             ${service.mcp_status}
                         </span>
                     </td>
-                    <td class="actions">
+                    <td class="actions" >
                         <!-- <button class="btn ${service.is_alive ? 'btn-disabled':'btn-primary' } btn-sm" 
                                 ${service.is_alive? "":`onclick="startService('${service.name}')"`}
                                 ${service.is_alive ? 'disabled' : ''}>
@@ -300,6 +304,10 @@
                 console.error('请求失败:', error);
                 throw error; // 可根据需要选择 re-throw 或返回默认值
             }
+        }
+
+        async function settings(){
+
         }
 
         // 查看MCP服务
