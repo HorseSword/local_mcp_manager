@@ -338,115 +338,6 @@ class ProcessManager:
         print(f"[call_tool] dict_res = {dict_res}")
         return json.dumps(dict_res, ensure_ascii=False)
 
-    async def ai_chat(self, svc_name: str, lst_messages: list):
-        """
-        AI聊天接口 - 使用OpenAI API调用MCP工具
-
-        Args:
-            svc_name: 服务名称
-            lst_messages: 用户消息列表, openai-api格式
-
-        Returns:
-            JSON字符串，包含AI响应和工具调用结果
-        """
-        print(f"【core|ai_chat】svc_name = {svc_name}, lst_messages = {lst_messages}")
-
-        # 获取服务的工具列表
-        lst_svc = [svc for svc in self.services if svc.get("name","no_name") == svc_name]
-        if len(lst_svc) <= 0:
-            return json.dumps({
-                'success': False,
-                'error': f'Service {svc_name} not found'
-            }, ensure_ascii=False)
-        else:
-            svc = lst_svc[0]
-        
-        lst_tools = svc.get('tools', [])
-        if not lst_tools:
-            return json.dumps({
-                'success': False,
-                'error': f'No tools available for service {svc_name}'
-            }, ensure_ascii=False)
-        
-        lst_msg_selected = [
-            msg for msg in lst_messages if msg['role'] in ['user', 'assistant', 'system'] and len(msg['content'])>0
-        ]
-
-        try:
-            self.basic_config.load_openai_cfg()
-            openai_url = self.basic_config.cfg['openaiurl']
-            openai_key = self.basic_config.cfg['openaikey']
-            openai_model = self.basic_config.cfg['openaimodel']
-            # with open('settings.json','r') as f:
-            #     dict_conf = json.load(f)
-            #     openai_url = dict_conf['openaiurl']
-            #     openai_key = dict_conf['openaikey']
-            #     openai_model = dict_conf['openaimodel']
-        except Exception as e:
-            return json.dumps({
-                'success': False,
-                'error': f'Error while read openai config {e}'
-            }, ensure_ascii=False)
-
-        # 调用工具
-        client = OpenAI(
-            api_key=openai_key,
-            base_url=openai_url,
-        )
-
-        n_round = 0
-        MAX_ROUND = 3
-        lst_tool_calls = []
-        ai_response = ''
-        while n_round < MAX_ROUND:
-            n_round += 1
-            #
-            try:
-                if n_round < MAX_ROUND:
-                    response = client.chat.completions.create(
-                        model = openai_model,
-                        messages=[{"role":"system","content":"You can use tools to help user when necessary."}] + lst_msg_selected,
-                        tools=mcp_to_openai(lst_tools),
-                    )
-                else: # 最后一次 不再使用工具了，避免死循环
-                    response = client.chat.completions.create(
-                        model = openai_model,
-                        messages = lst_msg_selected,
-                    )  
-                #
-                # 检查返回模式
-                if response.model_dump()['choices'][0]['finish_reason'] in ['tool_calls']: # 工具调用
-                    lst_tool_results = []
-                    for call in response.model_dump()['choices'][0]['message']['tool_calls']:
-                        tool_name = call['function']['name']
-                        tool_params = call['function'].get("arguments","{}")
-                        #
-                        # 正式调用
-                        tool_res = await self.call_tool(
-                            svc_name=svc_name, 
-                            tool_name=tool_name, 
-                            tool_params=tool_params
-                        )
-                        lst_tool_calls.append({
-                            'tool_name': tool_name, 
-                            'parameters': tool_params, 
-                            'result': str(tool_res)
-                        })
-                        lst_tool_results.append(tool_res)
-                    lst_msg_selected.append({"role":"system","content":str(lst_tool_results)})
-
-                else:  # 普通对话
-                    ai_response = response.model_dump()['choices'][0]['message']['content']
-                    break
-            except:
-                pass
-
-        return json.dumps({
-            'success': True,
-            'tool_calls': lst_tool_calls,
-            'response': ai_response
-        }, ensure_ascii=False)
-
     async def ai_chat_stream(self, svc_name: str, lst_messages: list):
         """
         AI聊天流式接口 - 使用OpenAI API调用MCP工具，增量返回结果
@@ -459,9 +350,13 @@ class ProcessManager:
             JSON字符串，每次工具调用或AI响应后返回
         """
         print(f"【core|ai_chat_stream】svc_name = {svc_name}, lst_messages = {lst_messages}")
+        
+        lst_tools = []
+        dict_tools = {}
 
         # 获取服务的工具列表
-        lst_svc = [svc for svc in self.services if svc.get("name","no_name") == svc_name]
+        lst_svc_names = svc_name.split('|')  # 暂定分隔符为 | 符号
+        lst_svc = [svc for svc in self.services if svc.get("name","no_name") in lst_svc_names]
         if len(lst_svc) <= 0:
             yield json.dumps({
                 'type': 'error',
@@ -469,16 +364,20 @@ class ProcessManager:
             }, ensure_ascii=False)
             return
         else:
-            svc = lst_svc[0]
+            for svc in lst_svc:
+                tmp_lst_tools = svc.get('tools', [])
+                for tool in tmp_lst_tools:
+                    tool_name_real = tool['name']
+                    tool_name_uniq = tool_name_real
+                    n = 0
+                    while tool_name_uniq in dict_tools.keys():
+                        n+=1
+                        tool_name_uniq = tool_name_real + '_' + str(n)
+                    tool['name'] = tool_name_uniq
+                    dict_tools[tool_name_uniq] = {"tool_name":tool_name_real,"svc_name":svc.get("name")}
+                lst_tools += tmp_lst_tools
 
-        lst_tools = svc.get('tools', [])
-        if not lst_tools:
-            yield json.dumps({
-                'type': 'error',
-                'message': f'No tools available for service {svc_name}'
-            }, ensure_ascii=False)
-            return
-
+        # 消息列表
         lst_msg_selected = [
             msg for msg in lst_messages if msg['role'] in ['user', 'assistant', 'system'] and len(msg['content'])>0
         ]
@@ -488,11 +387,7 @@ class ProcessManager:
             openai_url = self.basic_config.cfg['openai_url']
             openai_key = self.basic_config.cfg['openai_key']
             openai_model = self.basic_config.cfg['openai_model']
-            # with open('settings.json','r') as f:
-            #     dict_conf = json.load(f)
-            #     openai_url = dict_conf['openaiurl']
-            #     openai_key = dict_conf['openaikey']
-            #     openai_model = dict_conf['openaimodel']
+
         except Exception as e:
             yield json.dumps({
                 'type': 'error',
@@ -507,7 +402,7 @@ class ProcessManager:
         )
 
         n_round = 0
-        MAX_ROUND = 3
+        MAX_ROUND = 5
         while n_round < MAX_ROUND:
             n_round += 1
             try:
@@ -532,10 +427,10 @@ class ProcessManager:
                         call_id = call.get('id')
                         tool_name = call['function']['name']
                         tool_params = call['function'].get("arguments","{}")
-
+                        #
                         tool_res = await self.call_tool(
-                            svc_name=svc_name,
-                            tool_name=tool_name,
+                            svc_name=dict_tools[tool_name].get("svc_name"),
+                            tool_name=dict_tools[tool_name].get("tool_name"),
                             tool_params=tool_params
                         )
 

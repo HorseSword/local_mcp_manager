@@ -51,6 +51,11 @@ async def index():
     # asyncio.create_task(manager.get_tools_all())  # 无效
     return render_template('index.html')
 
+@app.route('/api/aichat',methods=['GET'])
+async def show_ai_chat():
+    init_manager()
+    return render_template('_mcp_chat.html')
+
 @app.route('/api/services/<service_name>/info', methods=['GET'])
 async def show_mcp_info(service_name):
     """
@@ -158,45 +163,6 @@ async def mcp_call_tool(service_name):
         return jsonify({
             'success': False,
             'error': f'Tool call failed: {str(e)}'
-        }), 500
-
-@app.route('/api/services/<service_name>/ai_chat', methods=['POST'])
-async def mcp_ai_chat(service_name):
-    """
-    AI聊天接口 - 使用AI智能调用MCP工具
-    """
-    try:
-        # 获取请求数据
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No JSON data provided'
-            }), 400
-
-        lst_msg = data.get('messages')
-
-        if not lst_msg:
-            return jsonify({
-                'success': False,
-                'error': 'Message is required'
-            }), 400
-
-        # 初始化管理器
-        init_manager()
-
-        # 调用AI聊天
-        ai_result_json = await manager.ai_chat(service_name, lst_msg)
-
-        # 解析结果
-        ai_result = json.loads(ai_result_json)
-
-        return jsonify(ai_result)
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'AI chat failed: {str(e)}'
         }), 500
 
 @app.route('/api/services/<service_name>/ai_chat_stream', methods=['POST'])

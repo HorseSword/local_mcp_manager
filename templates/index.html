@@ -20,6 +20,7 @@
                 <!-- <button class="btn btn-danger" onclick="stopAllServices()">Batch Stop</button> -->
                 <button class="btn btn-secondary" onclick="addMCP()">Add MCP</button>
                 <button class="btn btn-secondary" onclick="editConfig()">Edit Config File</button>
+                <button class="btn btn-secondary" onclick="aiChat()">AI Chat With MCP</button>
             </div>
             <div class="header-right">
                 <button class="btn btn-primary" onclick="refreshWindow()">Refresh</button>
@@ -649,7 +650,37 @@
                 closeModal();
             }
         }
-        
+
+        //
+        async function aiChat(){
+            // 显示模态框
+            showModal();
+
+            // 创建iframe
+            const iframe = document.createElement('iframe');
+            const infoUrl = `/api/aichat`;
+            console.log('Loading iframe URL:', infoUrl);
+
+            iframe.src = infoUrl;
+            // 设置内容框高度，不是遮罩层高度
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.style.height = '80vh';
+            modalContent.style.maxHeight = '80vh';
+
+            iframe.style.width = '100%';
+            iframe.style.height = '100%'; // 'calc(80vh - 120px)'; // 减去头部、按钮和边距
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '6px';
+            iframe.style.background = 'white';
+            iframe.style.boxSizing = 'border-box';
+            iframe.style.display = 'block';
+            iframe.style.overflowY = 'hidden';
+
+            // 清空内容容器并添加iframe
+            contentWrapper.innerHTML = '';
+            contentWrapper.appendChild(iframe);
+        }
+
         // 切换服务启用状态
         async function toggleEnabled(serviceName) {
             try {

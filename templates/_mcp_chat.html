@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Service Info - {{ serviceName | default('Unknown') }}</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_mcp_info.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_json.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/basic_tabs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+    
+    <style>
+        /* 右侧标签页容器 */
+        .right-tabs-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 左侧标签页容器 */
+        .left-tabs-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        /* 标签页导航 */
+        .tabs-navigation {
+            display: flex;
+            gap: 0;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            background-color: #f8f9fa;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            background-color: #e9ecef;
+            color: #212529;
+        }
+
+        .tab-button.active {
+            background-color: #fff;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        /* 标签页内容容器 */
+        .tabs-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: #fff;
+        }
+
+        /* 标签页面板 */
+        .tab-pane {
+            display: none;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 右侧标签页活动状态 - 使用flex布局 */
+        .right-tabs-container .tab-pane.active {
+            display: block;
+        }
+
+        /* 左侧标签页活动状态 - 使用block布局 */
+        .left-tabs-container .tab-pane.active {
+            display: block;
+            overflow-y: auto;
+        }
+
+        .left-tabs-container .tab-pane pre {
+            margin: 0;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        /* 左侧 Tools JSON 显示容器 */
+        #mcp-tools-json,
+        #mcp-prompts-json,
+        #mcp-resources-json {
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* 覆盖 .json-display，使其更自然 */
+        #mcp-tools-json .json-display, 
+        #mcp-prompts-json .json-display, 
+        #mcp-resources-json .json-display {
+            background-color: #fff;  /* 白色背景 */
+            border: none;            /* 去掉边框 */
+            border-radius: 0;        /* 去掉圆角 */
+            padding: 15px;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;   /* 允许横向折行 */
+            word-break: break-word;  /* 长单词也会折行 */
+            overflow-y: visible;     /* 纵向滚动由父容器处理 */
+            overflow-x: visible;     /* 不需要横向滚动 */
+        }
+
+        /* 占位内容样式 */
+        .placeholder-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .placeholder-content svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .placeholder-content h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .placeholder-content p {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        /* 手动调用容器 - 左右布局 */
+        .manual-call-container {
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .manual-call-container .param-panel {
+            flex: 1;
+            border-right: 1px solid #ddd;
+        }
+
+        .manual-call-container .result-panel {
+            flex: 1;
+            padding: 10px;
+            background-color: #fff;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        /* AI调用容器 */
+        .ai-call-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        /* 对话区域 */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* 消息容器 */
+        .chat-messages .message {
+            display: flex;
+            width: 100%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .chat-messages .message.user-message {
+            justify-content: flex-end;
+        }
+
+        .chat-messages .message.ai-message {
+            justify-content: flex-start;
+        }
+
+        /* 消息气泡 */
+        .chat-messages .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            box-sizing: border-box;
+        }
+
+        .chat-messages .user-message .message-bubble {
+            background-color: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-messages .ai-message .message-bubble.ai-tool {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #bbdefb;
+        }
+
+        .chat-messages .ai-message .message-bubble.ai-response {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .chat-messages .message-content {
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        /* 用户消息和AI响应消息需要保留换行 */
+        .chat-messages .user-message .message-content,
+        .chat-messages .ai-response .message-content {
+            white-space: pre-wrap;
+        }
+
+        /* 工具调用特殊样式 */
+        .chat-messages .tool-call-info {
+            background-color: #fff3e0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border-left: 3px solid #ff9800;
+        }
+
+        .chat-messages .tool-call-info strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #e65100;
+        }
+
+        /* 工具调用内容样式优化 - 减少纵向间距 */
+        .chat-messages .ai-tool .message-content {
+            line-height: 1.3;
+            white-space: normal; /* 覆盖默认的 pre-wrap，避免保留换行符产生的间距 */
+        }
+
+        .chat-messages .ai-tool .message-content > div {
+            margin-bottom: 6px;
+            margin-top: 6px;
+        }
+
+        .chat-messages .ai-tool .message-content pre {
+            margin: 0;
+            line-height: 1.4;
+            white-space: pre-wrap; /* 只在 pre 标签内保留换行 */
+        }
+
+        /* 输入区域 */
+        .chat-input-area {
+            flex-shrink: 0;
+            padding: 16px;
+            background-color: #fff;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            min-height: 80px;
+            max-height: 200px;
+            box-sizing: border-box;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .input-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-hint {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .btn-send-message {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-send-message:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-send-message:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-send-message svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 加载动画 */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background-color: #007bff;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; box-sizing: border-box;">
+<div class="container_main" style="width: 100%; height: 100%; overflow: hidden; box-sizing: border-box;">
+    <!-- 第一行：标题 -->
+    <header class="header-section">
+        <h1>AI Chat With MCP</h1>
+    </header>
+
+    <!-- 第二行：左右布局 -->
+    <div class="main-content">
+
+        <!-- 左侧：MCP服务列表 (35%宽度) -->
+        <div class="left-tabs-container" style="width: 35%;">
+
+        </div>
+
+        <!-- 右侧：标签页区域 (64%宽度) -->
+        <div class="right-tabs-container" style="width: 70%;">
+
+            <div class="tab-pane active" id="tab-ai">
+                <div class="ai-call-container">
+                    <!-- 对话区域 (可滚动) -->
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- 欢迎消息 -->
+                        <div class="message ai-message">
+                            <div class="message-bubble ai-response">
+                                <div class="message-content">Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 输入区域 (固定在底部) -->
+                    <div class="chat-input-area">
+                        <textarea
+                            id="ai-input"
+                            class="chat-input"
+                            placeholder="Describe what you want to do..."
+                            rows="3"
+                            onkeydown="handleChatKeydown(event)"
+                        ></textarea>
+                        <div class="input-actions">
+                            <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-send-message" onclick="clearChat()" style="background-color: #6c757d;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                    </svg>
+                                    Clear
+                                </button>
+                                <button type="button" class="btn-send-message" onclick="sendAIMessage()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- 先加载 JSON 格式化脚本 -->
+<script type="text/javascript" src="{{ url_for('static', filename='js/_json.js') }}"></script>
+
+<script>
+    // 右侧标签页切换函数
+    function switchTab(tabName) {
+        // 移除所有右侧按钮的active状态
+        document.querySelectorAll('.tab-button:not(.left-tab)').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // 隐藏右侧所有标签页内容
+        document.querySelectorAll('.right-tabs-container .tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+
+        // 激活选中的标签页
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // 左侧标签页切换函数
+    function switchLeftTab(tabName) {
+        // 移除所有左侧按钮的active状态
+        document.querySelectorAll('.left-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // 隐藏左侧所有标签页内容
+        document.querySelectorAll('.left-tabs-container .tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+
+        // 激活选中的标签页
+        document.querySelector(`.left-tab[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`left-tab-${tabName}`).classList.add('active');
+    }
+
+    // AI聊天相关函数
+    let isProcessing = false;
+
+    // 处理键盘事件（Enter发送，Shift+Enter换行）
+    function handleChatKeydown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendAIMessage();
+        }
+    }
+
+    // 添加用户消息
+    function addUserMessage(content) {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user-message';
+        messageDiv.setAttribute('data-role', 'user');
+        messageDiv.setAttribute('data-content', content);
+        messageDiv.innerHTML = `
+            <div class="message-bubble">
+                <div class="message-content">${escapeHtml(content)}</div>
+            </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // 添加AI工具调用消息（浅蓝色）
+    function addAIToolMessage(toolName, parameters, result) {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai-message';
+
+        const paramsStr = JSON.stringify(parameters, null, 2);
+        const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+
+        // 存储元数据用于历史记录
+        messageDiv.setAttribute('data-role', 'tool-call');
+        messageDiv.setAttribute('data-tool-name', toolName);
+        messageDiv.setAttribute('data-parameters', JSON.stringify(parameters));
+        messageDiv.setAttribute('data-result', JSON.stringify(result));
+
+        messageDiv.innerHTML = `
+            <div class="message-bubble ai-tool">
+                <div class="tool-call-info">
+                    <strong>🔧 Calling Tool: ${escapeHtml(toolName)}</strong>
+                </div>
+                <div class="message-content">
+                    <div><strong>Parameters:</strong></div>
+                    <pre style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto;">${escapeHtml(paramsStr)}</pre>
+                    <div><strong>Result:</strong></div>
+                    <pre style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${escapeHtml(resultStr)}</pre>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // 添加AI文本响应消息（浅绿色）
+    function addAIResponseMessage(content) {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai-message';
+        messageDiv.setAttribute('data-role', 'assistant');
+        messageDiv.setAttribute('data-content', content);
+        messageDiv.innerHTML = `
+            <div class="message-bubble ai-response">
+                <div class="message-content">${escapeHtml(content)}</div>
+            </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // 显示加载指示器
+    function showTypingIndicator() {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+
+        // 先移除旧的加载指示器（如果存在）
+        hideTypingIndicator();
+
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'message ai-message';
+        indicatorDiv.id = 'typing-indicator';
+        indicatorDiv.innerHTML = `
+            <div class="message-bubble ai-response">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(indicatorDiv);
+        scrollToBottom();
+    }
+
+    // 隐藏加载指示器
+    function hideTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+
+    // 滚动到底部
+    function scrollToBottom() {
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // HTML转义
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 发送AI消息
+    async function sendAIMessage() {
+        if (isProcessing) {
+            return;
+        }
+
+        const input = document.getElementById('ai-input');
+        const message = input.value.trim();
+
+        if (!message) {
+            return;
+        }
+        //
+        let lst_msg = getChatHistory();
+
+        // 添加用户消息
+        addUserMessage(message);
+
+        // 打印历史对话，用于调试
+        lst_msg.push({'role':'user','content':message});
+        console.log(lst_msg);
+
+        // 清空输入框
+        input.value = '';
+
+        // 禁用发送
+        isProcessing = true;
+        const sendButtons = document.querySelectorAll('.btn-send-message');
+        sendButtons.forEach(btn => btn.disabled = true);
+
+        // 显示加载指示器
+        showTypingIndicator();
+
+        // 获取服务名称
+        const serviceName = document.querySelector('.header-section h1').textContent;
+
+        try {
+            // 调用后端流式API
+            const response = await fetch(`/api/services/${encodeURIComponent(serviceName)}/ai_chat_stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: lst_msg
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // 读取流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // 解码数据块
+                buffer += decoder.decode(value, { stream: true });
+
+                // 按行分割，处理每个 SSE 事件
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop() || ''; // 保留未完成的行
+
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data: ')) continue;
+
+                    // 提取 JSON 数据
+                    const jsonStr = line.substring(6).trim();
+                    if (!jsonStr) continue;
+
+                    try {
+                        const data = JSON.parse(jsonStr);
+
+                        // 根据消息类型处理
+                        if (data.type === 'tool_call') {
+                            // 显示工具调用结果
+                            addAIToolMessage(data.tool_name, data.parameters, data.result);
+                            // 重新将加载动画放到最下面
+                            showTypingIndicator();
+                        } else if (data.type === 'response') {
+                            // 显示AI响应，隐藏加载动画
+                            addAIResponseMessage(data.content);
+                            hideTypingIndicator();
+                        } else if (data.type === 'error') {
+                            // 显示错误，隐藏加载动画
+                            addAIResponseMessage(`Error: ${data.message}`);
+                            hideTypingIndicator();
+                        } else if (data.type === 'done') {
+                            // 流结束，隐藏加载动画
+                            hideTypingIndicator();
+                            console.log('Stream completed');
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse SSE data:', jsonStr, e);
+                    }
+                }
+            }
+
+            // 确保在流结束后隐藏加载动画（防止某些情况下没有收到done信号）
+            hideTypingIndicator();
+        } catch (error) {
+            hideTypingIndicator();
+            console.error('AI chat error:', error);
+            addAIResponseMessage(`Error: ${error.message}`);
+        } finally {
+            // 恢复发送按钮
+            isProcessing = false;
+            const sendButtons = document.querySelectorAll('.btn-send-message');
+            sendButtons.forEach(btn => btn.disabled = false);
+        }
+    }
+
+    // 清空对话
+    function clearChat() {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return;
+        }
+
+        // 清空所有消息，保留欢迎消息
+        chatMessages.innerHTML = `
+            <div class="message ai-message">
+                <div class="message-bubble ai-response">
+                    <div class="message-content">Hello! I'm ready to help you call MCP tools. Describe what you want to do, and I'll use the available tools to assist you.</div>
+                </div>
+            </div>
+        `;
+
+        console.log('Chat cleared');
+    }
+
+    // 获取对话历史（OpenAI API格式）
+    function getChatHistory() {
+        const chatMessages = document.querySelector('#tab-ai .chat-messages');
+        if (!chatMessages) {
+            console.error('chat-messages container not found!');
+            return [];
+        }
+
+        const history = [];
+        const messages = chatMessages.querySelectorAll('.message');
+
+        // 跳过欢迎消息（没有data-role属性的）
+        messages.forEach(msg => {
+            const role = msg.getAttribute('data-role');
+            if (!role) return; // 跳过欢迎消息
+
+            if (role === 'user') {
+                // 用户消息
+                const content = msg.getAttribute('data-content');
+                history.push({
+                    role: 'user',
+                    content: content
+                });
+            } else if (role === 'assistant') {
+                // AI响应消息
+                try{
+                    const content = msg.getAttribute('data-content');
+                    history.push({
+                        role: 'assistant',
+                        content: content
+                    });
+                }
+                catch(err){
+                    //
+                }
+            } else if (role === 'tool-call') {
+                try{
+                    // 工具调用消息 - 需要拆分为assistant的tool调用和tool的响应
+                    const toolName = msg.getAttribute('data-tool-name');
+                    const parameters = msg.getAttribute('data-parameters');
+                    const result = msg.getAttribute('data-result');
+
+                    // 生成唯一的tool_call_id
+                    const toolCallId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+                    // 添加assistant的tool调用
+                    /* history.push({
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                            {
+                                id: toolCallId,
+                                type: 'function',
+                                function: {
+                                    name: toolName,
+                                    arguments: JSON.stringify(JSON.parse(parameters))
+                                }
+                            }
+                        ]
+                    }); 
+                    */
+                    // 添加tool的响应
+                    // history.push({
+                    //    role: 'tool',
+                    //    tool_call_id: toolCallId,
+                    //    content: JSON.stringify(JSON.parse(result))
+                    // });
+                }
+                catch{
+
+                }
+            }
+        });
+
+        return history;
+    }
+
+    // 导出对话历史到控制台（方便调试）
+    function exportChatHistory() {
+        const history = getChatHistory();
+        console.log('Chat History (OpenAI format):');
+        console.log(JSON.stringify(history, null, 2));
+        return history;
+    }
+
+    // 参数计数器
+    let paramCount = 1;
+
+    // 添加参数对
+    function addParameter() {
+        paramCount++;
+        const container = document.getElementById('parameters-container');
+
+        const paramPair = document.createElement('div');
+        paramPair.className = 'param-pair';
+        paramPair.setAttribute('data-param-id', paramCount);
+
+        paramPair.innerHTML = `
+            <div class="param-input-group">
+                <input type="text" class="param-key" placeholder="key" name="param_key_${paramCount}">
+                <input type="text" class="param-value" placeholder="value" name="param_value_${paramCount}">
+                <select class="param-type" name="param_type_${paramCount}" onchange="handleTypeChange(this)">
+                    <option value="text" selected>Text</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="null">Null</option>
+                </select>
+                <button type="button" class="btn-remove-param" onclick="removeParameter(${paramCount})">×</button>
+            </div>
+        `;
+
+        container.appendChild(paramPair);
+    }
+
+    // 移除参数对
+    function removeParameter(paramId) {
+        const paramPair = document.querySelector(`[data-param-id="${paramId}"]`);
+        if (paramPair) {
+            paramPair.remove();
+        }
+    }
+
+    // 处理类型选择变化
+    function handleTypeChange(selectElement) {
+        const paramInputGroup = selectElement.closest('.param-input-group');
+        const valueInput = paramInputGroup.querySelector('.param-value');
+        const selectedType = selectElement.value;
+
+        if (selectedType === 'null') {
+            // Null类型：禁用输入框并显示"-"
+            valueInput.value = '-';
+            valueInput.disabled = true;
+            valueInput.style.backgroundColor = '#f5f5f5';
+            valueInput.style.cursor = 'not-allowed';
+        } else {
+            // 其他类型：恢复输入框
+            if (valueInput.value === '-') {
+                valueInput.value = '';
+            }
+            valueInput.disabled = false;
+            valueInput.style.backgroundColor = '';
+            valueInput.style.cursor = '';
+        }
+    }
+
+    // 收集表单数据并转换为JSON
+    function collectFormData() {
+        const toolName = document.getElementById('tool-name').value.trim();
+
+        const parameters = {};
+        const paramPairs = document.querySelectorAll('.param-pair');
+
+        paramPairs.forEach(pair => {
+            const key = pair.querySelector('.param-key').value.trim();
+            const valueInput = pair.querySelector('.param-value');
+            const typeSelect = pair.querySelector('.param-type');
+
+            if (key) {
+                const paramType = typeSelect ? typeSelect.value : 'text';
+
+                // 根据类型转换值
+                let value;
+                if (paramType === 'null') {
+                    value = null;
+                } else if (paramType === 'boolean') {
+                    const rawValue = valueInput.value.trim().toLowerCase();
+                    if (rawValue === 'true' || rawValue === '1' || rawValue === 'yes') {
+                        value = true;
+                    } else if (rawValue === 'false' || rawValue === '0' || rawValue === 'no') {
+                        value = false;
+                    } else {
+                        // 如果输入不明确，默认为 true（非空字符串）或 false
+                        value = rawValue.length > 0;
+                    }
+                } else if (paramType === 'number') {
+                    const rawValue = valueInput.value.trim();
+                    if (rawValue) {
+                        value = Number(rawValue);
+                    } else {
+                        value = 0;
+                    }
+                } else {
+                    // text 类型，直接使用字符串值
+                    value = valueInput.value.trim();
+                }
+
+                parameters[key] = value;
+            }
+        });
+
+        return {
+            tool_name: toolName,
+            parameters: parameters
+        };
+    }
+
+    // 提交表单
+    function submitForm() {
+        const formData = collectFormData();
+
+        // 验证工具名称
+        if (!formData.tool_name) {
+            alert('请输入工具名称！');
+            document.getElementById('tool-name').focus();
+            return;
+        }
+
+        // 获取服务名称（从页面标题中获取）
+        const serviceName = document.querySelector('.header-section h1').textContent;
+
+        // 显示加载状态
+        const resultPanel = document.querySelector('.result-panel');
+        if (resultPanel) {
+            resultPanel.innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <div style="color: #007bff; font-size: 16px;">正在调用工具...</div>
+                    <div style="margin-top: 10px; font-size: 14px; color: #666;">请稍候</div>
+                </div>
+            `;
+        }
+
+        // 发送请求到服务器
+        fetch(`/api/services/${encodeURIComponent(serviceName)}/call_tool`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('服务器响应:', data);
+
+            // 显示结果
+            if (resultPanel) {
+                if (data.success) {
+                    resultPanel.innerHTML = `
+                        <h4 style="color: #28a745;">工具调用成功</h4>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">
+                            <p>调用结果：</p>
+                            <pre style="background-color: white; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap;">${JSON.stringify(data.result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultPanel.innerHTML = `
+                        <h4 style="color: #dc3545;">工具调用失败</h4>
+                        <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                            <strong>错误信息：</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('请求失败:', error);
+
+            // 显示错误信息
+            if (resultPanel) {
+                resultPanel.innerHTML = `
+                    <h4 style="color: #dc3545;">请求失败</h4>
+                    <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                        <strong>错误信息：</strong> ${error.message || error}
+                    </div>
+                `;
+            }
+        });
+    }
+
+    // 重置表单
+    function resetForm() {
+        document.getElementById('tool-name').value = '';
+
+        // 清空参数容器，只保留一个默认参数对
+        const container = document.getElementById('parameters-container');
+        container.innerHTML = `
+            <div class="param-pair" data-param-id="1">
+                <div class="param-input-group">
+                    <input type="text" class="param-key" placeholder="key" name="param_key_1">
+                    <input type="text" class="param-value" placeholder="value" name="param_value_1">
+                    <select class="param-type" name="param_type_1" onchange="handleTypeChange(this)">
+                        <option value="text" selected>Text</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="null">Null</option>
+                    </select>
+                    <button type="button" class="btn-remove-param" onclick="removeParameter(1)">×</button>
+                </div>
+            </div>
+        `;
+
+        // 重置计数器
+        paramCount = 1;
+
+        // 清空结果区域
+        const resultPanel = document.querySelector('.result-panel');
+        if (resultPanel) {
+            resultPanel.innerHTML = 'Submit to get results.';
+        }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 确保DOM已完全加载
+        console.log('MCP工具调用表单初始化完成');
+
+        // 格式化左侧 Tools 标签页的 JSON
+        formatMCPToolsJSON();
+    });
+
+    // 格式化 MCP Tools JSON
+    function formatMCPToolsJSON() {
+        const container = document.getElementById('mcp-tools-json');
+        if (!container) return;
+
+        const jsonText = container.textContent.trim();
+        if (!jsonText) return;
+
+        try {
+            // 解析 JSON
+            const obj = JSON.parse(jsonText);
+            // 格式化为带缩进的字符串
+            const formatted = JSON.stringify(obj, null, 2);
+            // 高亮显示
+            const highlighted = highlightJSON(formatted);
+            // 更新容器内容
+            container.innerHTML = `<pre class="json-display">${highlighted}</pre>`;
+        } catch (e) {
+            // 如果不是有效的 JSON，就显示原始内容（带错误提示）
+            console.error('Failed to parse MCP tools JSON:', e);
+            container.innerHTML = `
+                <div class="json-error">⚠️ JSON 格式化失败：${e.message}</div>
+                <pre style="padding: 16px; background: #f6f8fa; border-radius: 4px; overflow-x: auto;">${escapeHtml(jsonText)}</pre>
+            `;
+        }
+    }
+
+</script>
+</div>
+</body>
+</html>
