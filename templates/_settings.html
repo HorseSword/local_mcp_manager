@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/_user_edit.css') }}">
+    <style>
+        .settings-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .settings-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .settings-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .settings-section {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .settings-section:last-child {
+            border-bottom: none;
+        }
+
+        .settings-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .settings-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 15px 0;
+            flex-shrink: 0;
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- 头部 -->
+        <div class="settings-header">
+            <div class="settings-title">Settings</div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="settings-content">
+            <!-- 用户认证设置 -->
+            <div class="settings-section">
+                <div class="settings-section-title">User Authentication</div>
+
+                <div id="status-message" class="status-message"></div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter username">
+                    <div class="hint">Username for authentication</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password">
+                    <div class="hint">Password for authentication</div>
+                </div>
+            </div>
+
+            <!-- 未来可以在这里添加更多设置项 -->
+            <!--
+            <div class="settings-section">
+                <div class="settings-section-title">Another Setting Category</div>
+                ...
+            </div>
+            -->
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="settings-footer">
+            <button class="mcp-edit-btn mcp-edit-btn-secondary" onclick="cancelSettings()">Cancel</button>
+            <button class="mcp-edit-btn mcp-edit-btn-success" onclick="saveSettings()">Save</button>
+        </div>
+    </div>
+
+    <script>
+        let originalSettings = {};
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        // 加载设置
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings/load');
+                const data = await response.json();
+
+                if (data.success) {
+                    const settings = data.settings;
+                    originalSettings = {...settings};
+
+                    // 填充表单
+                    document.getElementById('username').value = settings.username || '';
+                    document.getElementById('password').value = settings.password || '';
+                } else {
+                    showStatus('Failed to load settings: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Error loading settings: ' + error.message, 'error');
+            }
+        }
+
+        // 保存设置
+        async function saveSettings() {
+            const settings = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('Settings saved successfully!', 'success');
+                    originalSettings = {...settings};
+
+                    // 通知父页面刷新（如果需要）
+                    if (window.parent) {
+                        window.parent.postMessage({
+                            type: 'SETTINGS_SAVED'
+                        }, '*');
+                    }
+                } else {
+                    showStatus('Failed to save settings: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Error saving settings: ' + error.message, 'error');
+            }
+        }
+
+        // 取消设置
+        function cancelSettings() {
+            // 检查是否有未保存的更改
+            const currentSettings = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value.trim()
+            };
+
+            const hasChanges = JSON.stringify(currentSettings) !== JSON.stringify(originalSettings);
+
+            if (hasChanges) {
+                if (confirm('You have unsaved changes. Are you sure you want to close?')) {
+                    closeSettings();
+                }
+            } else {
+                closeSettings();
+            }
+        }
+
+        // 关闭设置窗口
+        function closeSettings() {
+            // 通知父页面关闭模态框
+            if (window.parent) {
+                window.parent.postMessage({
+                    type: 'MCP_CLOSE_MODAL'
+                }, '*');
+            }
+        }
+
+        // 显示状态消息
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('status-message');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type}`;
+            statusEl.style.display = 'block';
+
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S 保存
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveSettings();
+            }
+            // Escape 关闭
+            if (e.key === 'Escape') {
+                cancelSettings();
+            }
+        });
+    </script>
+</body>
+</html>

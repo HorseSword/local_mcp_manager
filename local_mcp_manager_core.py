@@ -247,6 +247,8 @@ class ProcessManager:
         if len(lst_svc)>0:
             svc = lst_svc[0]
             dict_res['tools'] = svc.get("tools", False)
+            dict_res['prompts'] = svc.get("prompts", False)
+            dict_res['resources'] = svc.get("resources", False)
             if dict_res['tools'] and not force_reload: # 如果已经有工具，且不强制刷新的话
                 pass  # 直接返回缓存结果
             else:  # 否则读取工具明细
@@ -264,19 +266,27 @@ class ProcessManager:
                 async with Client(dict_conf) as client:
                     try:
                         svc['tools'] = [t.model_dump() for t in await client.list_tools()]
+                        svc['prompts'] = [t.model_dump() for t in await client.list_prompts()]
+                        svc['resources'] = [t.model_dump() for t in await client.list_resources()]
                         svc['mcp_status'] = 'ON'
                         dict_res['tools'] = svc['tools']
+                        dict_res['prompts'] = svc['prompts']
+                        dict_res['resources'] = svc['resources']
                     except:
                         svc['tools'] = [str(t) for t in await client.list_tools()]
+                        svc['prompts'] = [str(t) for t in await client.list_prompts()]
+                        svc['resources'] = [str(t) for t in await client.list_resources()]
                         svc['mcp_status'] = 'ERROR'
                         dict_res['tools'] = svc['tools']
+                        dict_res['prompts'] = svc['prompts']
+                        dict_res['resources'] = svc['resources']
                     # dict_res['resources'] = [t.modeawait client.list_resources()
         
         # print(f"[get_tools_by_name] dict_res = {dict_res}")
         try:
-            return json.dumps(dict_res.get('tools',[]), indent=2, ensure_ascii=False)
+            return json.dumps(dict_res, indent=2, ensure_ascii=False)
         except:
-            return str(dict_res.get('tools',[]))
+            return str(dict_res)
     
     async def get_tools_all(self):
         """ 
@@ -492,8 +502,11 @@ class ProcessManager:
                 #
                 # 检查返回模式
                 if response.model_dump()['choices'][0]['finish_reason'] in ['tool_calls']: # 工具调用
-                    lst_tool_results = []
+                    #
+                    lst_msg_selected.append(response.model_dump()['choices'][0]['message'])
+                    #
                     for call in response.model_dump()['choices'][0]['message']['tool_calls']:
+                        call_id = call.get('id')
                         tool_name = call['function']['name']
                         tool_params = call['function'].get("arguments","{}")
 
@@ -511,8 +524,11 @@ class ProcessManager:
                             'result': str(tool_res)
                         }, ensure_ascii=False)
 
-                        lst_tool_results.append(tool_res)
-                    lst_msg_selected.append({"role":"system","content":str(lst_tool_results)})
+                        lst_msg_selected.append({
+                            "role": 'tool',
+                            'tool_call_id': call_id,
+                            'content': tool_res,
+                        })
 
                 else:  # 普通对话
                     ai_response = response.model_dump()['choices'][0]['message']['content']

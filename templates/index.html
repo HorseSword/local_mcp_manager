@@ -307,7 +307,35 @@
         }
 
         async function settings(){
+            console.log('Opening settings');
 
+            // 显示模态框
+            showModal();
+
+            // 创建iframe
+            const iframe = document.createElement('iframe');
+            const settingsUrl = '/api/settings';
+            console.log('Loading iframe URL:', settingsUrl);
+
+            iframe.src = settingsUrl;
+            iframe.name = 'iframeWindow';
+            // 设置内容框高度
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.style.height = '80vh';
+            modalContent.style.maxHeight = '80vh';
+
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '6px';
+            iframe.style.background = 'white';
+            iframe.style.boxSizing = 'border-box';
+            iframe.style.display = 'block';
+
+            // 清空并插入iframe
+            const contentWrapper = document.getElementById('modal-body-wrapper');
+            contentWrapper.innerHTML = '';
+            contentWrapper.appendChild(iframe);
         }
 
         // 查看MCP服务

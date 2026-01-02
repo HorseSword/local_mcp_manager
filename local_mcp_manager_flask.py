@@ -60,7 +60,22 @@ async def show_mcp_info(service_name):
     """
     init_manager()
     service_info = await manager.get_tools_by_name(service_name)
-    return render_template('_mcp_info.html', serviceName = service_name, serviceInfo = service_info)
+    dict_info = json.loads(service_info)
+    template_params = {
+        'serviceName' : service_name,
+        'service_info' : service_info,
+        'serviceTools' : json.dumps(dict_info['tools']),
+        'servicePrompts' : json.dumps(dict_info['prompts']),
+        'serviceResources' : json.dumps(dict_info['resources']),
+        'n_tools': len(dict_info['tools']),
+        'n_prompts': len(dict_info['prompts']),
+        'n_resources': len(dict_info['resources']),
+    }
+
+    return render_template(
+        '_mcp_info.html', 
+        **template_params
+    )
 
 @app.route('/api/all', methods=['GET'])
 async def mcp_get_all():
@@ -702,6 +717,90 @@ def toggle_service_enabled(service_name):
         'success': False,
         'message': f'Service {service_name} does not exist.'
     }), 404
+
+@app.route('/api/settings')
+def show_settings():
+    """
+    显示设置页面
+
+    Show settings page
+    """
+    return render_template('_settings.html')
+
+@app.route('/api/settings/load', methods=['GET'])
+def load_settings():
+    """
+    加载设置文件
+
+    Load settings from settings.json
+    """
+    try:
+        settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
+
+        # 如果文件不存在，返回默认设置
+        if not os.path.exists(settings_file):
+            default_settings = {
+                'username': '',
+                'password': ''
+            }
+            return jsonify({
+                'success': True,
+                'settings': default_settings
+            })
+
+        # 读取现有设置
+        with open(settings_file, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+
+        return jsonify({
+            'success': True,
+            'settings': settings
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON format in settings.json: {str(e)}'
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load settings: {str(e)}'
+        }), 500
+
+@app.route('/api/settings/save', methods=['POST'])
+def save_settings():
+    """
+    保存设置到文件
+
+    Save settings to settings.json
+    """
+    try:
+        settings = request.get_json()
+
+        # 验证数据
+        if not isinstance(settings, dict):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid settings format'
+            }), 400
+
+        # 保存到文件
+        settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
+        with open(settings_file, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+
+        return jsonify({
+            'success': True,
+            'message': 'Settings saved successfully'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to save settings: {str(e)}'
+        }), 500
 
 def cleanup():
     """

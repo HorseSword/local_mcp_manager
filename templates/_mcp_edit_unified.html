@@ -93,7 +93,7 @@
                 <label for="template-select">Template:</label>
                 <select id="template-select" onchange="applyTemplate()">
                     <option value="" disabled selected>-- Select a template --</option>
-                    <option value="stdio-python">stdio (Python/uvx)</option>
+                    <option value="stdio-python">stdio (Python/uv)</option>
                     <option value="stdio-npx">stdio (npx/Node.js)</option>
                     <option value="http-sse">HTTP/SSE</option>
                 </select>
@@ -124,7 +124,7 @@
 
                     <h4>Template Types:</h4>
                     <ul>
-                        <li><strong>stdio (Python/uvx):</strong> For Python-based MCP servers using uv or uvx</li>
+                        <li><strong>stdio (Python/uv):</strong> For Python-based MCP servers using uv or uv</li>
                         <li><strong>stdio (npx):</strong> For Node.js-based MCP servers using npx</li>
                         <li><strong>HTTP/SSE:</strong> For MCP servers exposed via HTTP or Server-Sent Events</li>
                     </ul>
@@ -170,11 +170,11 @@
     // Template definitions
     const templates = {
         'stdio-python': {
-            name: 'stdio (Python/uvx)',
+            name: 'stdio (Python/uv)',
             config: {
                 name: "My Python MCP",
                 description: "Description of your Python MCP service",
-                command: "uvx",
+                command: "uv",
                 args: ["run", "your-package-name"],
                 cwd: "D:/path/to/your/project",
                 out_port: 17001,
@@ -184,11 +184,11 @@
                 host: "127.0.0.1"
             },
             help: `
-                <h4>stdio (Python/uvx) Configuration</h4>
+                <h4>stdio (Python/uv) Configuration</h4>
                 <pre>{
     "name": "My Python MCP",
     "description": "Description of your Python MCP service",
-    "command": "uvx",
+    "command": "uv",
     "args": ["run", "your-package-name"],
     "cwd": "D:/path/to/your/project",
     "out_port": 17001,
@@ -200,8 +200,8 @@
                 <p><strong>Required fields:</strong></p>
                 <ul>
                     <li><strong>out_port:</strong> Unique port number (17001-17999 recommended)</li>
-                    <li><strong>command:</strong> Command to run (usually "uvx" or "python")</li>
-                    <li><strong>args:</strong> Array of arguments (e.g., ["run", "package-name"] for uvx)</li>
+                    <li><strong>command:</strong> Command to run (usually "uv" or "python")</li>
+                    <li><strong>args:</strong> Array of arguments (e.g., ["run", "package-name"] for uv)</li>
                     <li><strong>cwd:</strong> Working directory (important for Python projects)</li>
                 </ul>
                 <p><strong>Optional fields:</strong></p>
@@ -214,7 +214,7 @@
                 </ul>
                 <p><strong>Examples:</strong></p>
                 <ul>
-                    <li>uvx: <code>{"command": "uvx", "args": ["run", "mcp-server-git"]}</code></li>
+                    <li>uv: <code>{"command": "uv", "args": ["run", "mcp-server-git"]}</code></li>
                     <li>python: <code>{"command": "python", "args": ["server.py"], "cwd": "D:/project"}</code></li>
                 </ul>
             `

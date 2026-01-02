@@ -19,6 +19,15 @@
             overflow: hidden;
         }
 
+        /* 左侧标签页容器 */
+        .left-tabs-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
         /* 标签页导航 */
         .tabs-navigation {
             display: flex;
@@ -69,8 +78,76 @@
             overflow: hidden;
         }
 
-        .tab-pane.active {
+        /* 右侧标签页活动状态 - 使用flex布局 */
+        .right-tabs-container .tab-pane.active {
             display: block;
+        }
+
+        /* 左侧标签页活动状态 - 使用block布局 */
+        .left-tabs-container .tab-pane.active {
+            display: block;
+            overflow-y: auto;
+        }
+
+        .left-tabs-container .tab-pane pre {
+            margin: 0;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        /* 左侧 Tools JSON 显示容器 */
+        #mcp-tools-json,
+        #mcp-prompts-json,
+        #mcp-resources-json {
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* 覆盖 .json-display，使其更自然 */
+        #mcp-tools-json .json-display, 
+        #mcp-prompts-json .json-display, 
+        #mcp-resources-json .json-display {
+            background-color: #fff;  /* 白色背景 */
+            border: none;            /* 去掉边框 */
+            border-radius: 0;        /* 去掉圆角 */
+            padding: 15px;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;   /* 允许横向折行 */
+            word-break: break-word;  /* 长单词也会折行 */
+            overflow-y: visible;     /* 纵向滚动由父容器处理 */
+            overflow-x: visible;     /* 不需要横向滚动 */
+        }
+
+        /* 占位内容样式 */
+        .placeholder-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .placeholder-content svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .placeholder-content h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .placeholder-content p {
+            font-size: 14px;
+            color: #6c757d;
         }
 
         /* 手动调用容器 - 左右布局 */
@@ -319,9 +396,38 @@
     <!-- 第二行：左右布局 -->
     <div class="main-content">
 
-        <!-- 左侧：文本区 (可滚动) -->
-         <div class="left-panel" style="width: 35%;">
-            <pre><code style = "white-space: pre-wrap; word-break: break-word; font-size: clamp(14px, 1rem, 24px)">{{ serviceInfo }}</code></pre>
+        <!-- 左侧：MCP资源标签页 (35%宽度) -->
+        <div class="left-tabs-container" style="width: 35%;">
+            <!-- 标签页导航 -->
+            <div class="tabs-navigation">
+                <button class="tab-button left-tab active" data-tab="tools" onclick="switchLeftTab('tools')">
+                    Tools ({{n_tools}})
+                </button>
+                <button class="tab-button left-tab" data-tab="prompts" onclick="switchLeftTab('prompts')">
+                    Prompts ({{n_prompts}})
+                </button>
+                <button class="tab-button left-tab" data-tab="resources" onclick="switchLeftTab('resources')">
+                    Resources ({{n_resources}})
+                </button>
+            </div>
+
+            <!-- 标签页内容 -->
+            <div class="tabs-content">
+                <!-- 标签页1: Tools -->
+                <div class="tab-pane active" id="left-tab-tools">
+                    <div id="mcp-tools-json">{{ serviceTools | safe }}</div>
+                </div>
+
+                <!-- 标签页2: Prompts (待实现) -->
+                <div class="tab-pane" id="left-tab-prompts">
+                    <div id="mcp-prompts-json">{{ servicePrompts | safe }}</div>
+                </div>
+
+                <!-- 标签页3: Resources (待实现) -->
+                <div class="tab-pane" id="left-tab-resources">
+                    <div id="mcp-resources-json">{{ serviceResources | safe }}</div>
+                </div>
+            </div>
         </div>
 
         <!-- 右侧：标签页区域 (64%宽度) -->
@@ -452,22 +558,42 @@
     </div>
 </div>
 
+<!-- 先加载 JSON 格式化脚本 -->
+<script type="text/javascript" src="{{ url_for('static', filename='js/_json.js') }}"></script>
+
 <script>
-    // 标签页切换函数
+    // 右侧标签页切换函数
     function switchTab(tabName) {
-        // 移除所有按钮的active状态
-        document.querySelectorAll('.tab-button').forEach(btn => {
+        // 移除所有右侧按钮的active状态
+        document.querySelectorAll('.tab-button:not(.left-tab)').forEach(btn => {
             btn.classList.remove('active');
         });
 
-        // 隐藏所有标签页内容
-        document.querySelectorAll('.tab-pane').forEach(pane => {
+        // 隐藏右侧所有标签页内容
+        document.querySelectorAll('.right-tabs-container .tab-pane').forEach(pane => {
             pane.classList.remove('active');
         });
 
         // 激活选中的标签页
         document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // 左侧标签页切换函数
+    function switchLeftTab(tabName) {
+        // 移除所有左侧按钮的active状态
+        document.querySelectorAll('.left-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // 隐藏左侧所有标签页内容
+        document.querySelectorAll('.left-tabs-container .tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+
+        // 激活选中的标签页
+        document.querySelector(`.left-tab[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`left-tab-${tabName}`).classList.add('active');
     }
 
     // AI聊天相关函数
@@ -1053,10 +1179,39 @@
     document.addEventListener('DOMContentLoaded', function() {
         // 确保DOM已完全加载
         console.log('MCP工具调用表单初始化完成');
+
+        // 格式化左侧 Tools 标签页的 JSON
+        formatMCPToolsJSON();
     });
 
+    // 格式化 MCP Tools JSON
+    function formatMCPToolsJSON() {
+        const container = document.getElementById('mcp-tools-json');
+        if (!container) return;
+
+        const jsonText = container.textContent.trim();
+        if (!jsonText) return;
+
+        try {
+            // 解析 JSON
+            const obj = JSON.parse(jsonText);
+            // 格式化为带缩进的字符串
+            const formatted = JSON.stringify(obj, null, 2);
+            // 高亮显示
+            const highlighted = highlightJSON(formatted);
+            // 更新容器内容
+            container.innerHTML = `<pre class="json-display">${highlighted}</pre>`;
+        } catch (e) {
+            // 如果不是有效的 JSON，就显示原始内容（带错误提示）
+            console.error('Failed to parse MCP tools JSON:', e);
+            container.innerHTML = `
+                <div class="json-error">⚠️ JSON 格式化失败：${e.message}</div>
+                <pre style="padding: 16px; background: #f6f8fa; border-radius: 4px; overflow-x: auto;">${escapeHtml(jsonText)}</pre>
+            `;
+        }
+    }
+
 </script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/_json.js') }}"></script>
 </div>
 </body>
 </html>
