@@ -359,11 +359,11 @@ class ProcessManager:
         ]
 
         try:
-            with open('basic_conf.json','r') as f:
+            with open('settings.json','r') as f:
                 dict_conf = json.load(f)
-                openai_url = dict_conf['openai_url']
-                openai_key = dict_conf['openai_key']
-                openai_model = dict_conf['openai_model']
+                openai_url = dict_conf['openaiurl']
+                openai_key = dict_conf['openaikey']
+                openai_model = dict_conf['openaimodel']
         except Exception as e:
             return json.dumps({
                 'success': False,
@@ -465,11 +465,11 @@ class ProcessManager:
         ]
 
         try:
-            with open('basic_conf.json','r') as f:
+            with open('settings.json','r') as f:
                 dict_conf = json.load(f)
-                openai_url = dict_conf['openai_url']
-                openai_key = dict_conf['openai_key']
-                openai_model = dict_conf['openai_model']
+                openai_url = dict_conf['openaiurl']
+                openai_key = dict_conf['openaikey']
+                openai_model = dict_conf['openaimodel']
         except Exception as e:
             yield json.dumps({
                 'type': 'error',
@@ -864,17 +864,17 @@ class basic_config:
     def save_cfg(self):
         """ 
         """
-        with open('basic_conf.json','w+') as f:
+        with open('settings.json','w+') as f:
             json.dump(self.cfg, f, indent=4, ensure_ascii=False)
     
     def load_openai_cfg(self):
         try:
-            with open('basic_conf.json','r') as f:
+            with open('settings.json','r') as f:
                 dict_conf = json.load(f)
                 self.cfg.update({
-                    'openai_url': dict_conf['openai_url'],
-                    'openai_key': dict_conf['openai_key'],
-                    'openai_model': dict_conf['openai_model'],
+                    'openai_url': dict_conf['openaiurl'],
+                    'openai_key': dict_conf['openaikey'],
+                    'openai_model': dict_conf['openaimodel'],
                 })
         except Exception as e:
             pass

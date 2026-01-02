@@ -18,3 +18,4 @@ mcp_conf.json.*
 .venv
 
 CLAUDE.md
+settings.json

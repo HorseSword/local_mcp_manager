@@ -169,11 +169,11 @@
                                 ${service.is_alive? `onclick="stopService('${service.name}')"`:""}
                                 ${!service.is_alive ? 'disabled' : ''}>
                             Stop
-                        </button> 
-                        <button class="btn ${service.is_alive? 'btn-secondary':'btn-disabled'} btn-sm" 
-                                ${service.is_alive? `onclick="infoService('${service.name}')"`:""}>
-                            Info
                         </button> -->
+                        <button class="btn ${service.mcp_status=='ON'? 'btn-secondary':'btn-disabled'} btn-sm" 
+                                ${service.mcp_status=='ON'? `onclick="infoService('${service.name}')"`:""}>
+                            Info
+                        </button> 
                         <button class="btn btn-secondary btn-sm .edit-btn" 
                                 onclick="editService('${service.name}')">
                             Edit

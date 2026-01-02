@@ -740,8 +740,9 @@ def load_settings():
         # 如果文件不存在，返回默认设置
         if not os.path.exists(settings_file):
             default_settings = {
-                'username': '',
-                'password': ''
+                'openaiurl': '',
+                'openaikey': '',
+                'openaimodel': ''
             }
             return jsonify({
                 'success': True,
