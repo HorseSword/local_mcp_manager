@@ -139,20 +139,20 @@
                 <div id="status-message" class="status-message"></div>
 
                 <div class="form-group">
-                    <label for="openaiurl">OpenAI Base URL</label>
-                    <input type="text" id="openaiurl" name="openaiurl" placeholder="Enter baseurl">
+                    <label for="openai_url">OpenAI Base URL</label>
+                    <input type="text" id="openai_url" name="openai_url" placeholder="Enter baseurl">
                     <div class="hint">BaseUrl for openai</div>
                 </div>
 
                 <div class="form-group">
-                    <label for="openaikey">OpenAI Key</label>
-                    <input type="password" id="openaikey" name="openaikey" placeholder="Enter openai key">
+                    <label for="openai_key">OpenAI Key</label>
+                    <input type="password" id="openai_key" name="openai_key" placeholder="Enter openai key">
                     <div class="hint">Key for openai</div>
                 </div>
 
                 <div class="form-group">
-                    <label for="openaimodel">OpenAI Modelname</label>
-                    <input type="text" id="openaimodel" name="openaimodel" placeholder="Enter modelname">
+                    <label for="openai_model">OpenAI Modelname</label>
+                    <input type="text" id="openai_model" name="openai_model" placeholder="Enter modelname">
                     <div class="hint">Model Name</div>
                 </div>
             </div>
@@ -192,9 +192,9 @@
                     originalSettings = {...settings};
 
                     // 填充表单
-                    document.getElementById('openaiurl').value = settings.openaiurl || '';
-                    document.getElementById('openaikey').value = settings.openaikey || '';
-                    document.getElementById('openaimodel').value = settings.openaimodel || '';
+                    document.getElementById('openai_url').value = settings.openai_url || '';
+                    document.getElementById('openai_key').value = settings.openai_key || '';
+                    document.getElementById('openai_model').value = settings.openai_model || '';
                 } else {
                     showStatus('Failed to load settings: ' + data.error, 'error');
                 }
@@ -206,9 +206,9 @@
         // 保存设置
         async function saveSettings() {
             const settings = {
-                openaiurl: document.getElementById('openaiurl').value.trim(),
-                openaikey: document.getElementById('openaikey').value.trim(),
-                openaimodel: document.getElementById('openaimodel').value.trim()
+                openai_url: document.getElementById('openai_url').value.trim(),
+                openai_key: document.getElementById('openai_key').value.trim(),
+                openai_model: document.getElementById('openai_model').value.trim()
             };
 
             try {
@@ -244,9 +244,9 @@
         function cancelSettings() {
             // 检查是否有未保存的更改
             const currentSettings = {
-                openaiurl: document.getElementById('openaiurl').value.trim(),
-                openaikey: document.getElementById('openaikey').value.trim(),
-                openaimodel: document.getElementById('openaimodel').value.trim()
+                openai_url: document.getElementById('openai_url').value.trim(),
+                openai_key: document.getElementById('openai_key').value.trim(),
+                openai_model: document.getElementById('openai_model').value.trim()
             };
 
             const hasChanges = JSON.stringify(currentSettings) !== JSON.stringify(originalSettings);

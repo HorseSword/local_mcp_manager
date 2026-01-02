@@ -76,6 +76,7 @@ class ProcessManager:
         self.VERSION = VERSION
         self.services = services  
         self.name_index = {svc["name"]: i for i, svc in enumerate(self.services)}  
+        self.basic_config = basic_config()
 
     async def create(self):
         """ 
@@ -136,12 +137,18 @@ class ProcessManager:
             is_alive = False
         return is_alive
 
-    def _start_service(self, svc):
+    def _start_service(self, svc, update_cfg = True):
         """ 
         svc: dict 
         """
         print(f"starting {svc['name']}")
-        # if svc["is_alive"]:
+        svc['is_enabled'] = True
+
+        if update_cfg:
+            if svc['name'] not in self.basic_config.cfg.get('enabled_srv',[]):
+                self.basic_config.cfg['enabled_srv'].append(svc['name'])
+                self.basic_config.save_cfg()
+        
         if self.check_svc_alive(svc):
             return
         #
@@ -175,7 +182,7 @@ class ProcessManager:
             svc["process"].start()
             svc["is_alive"] = self.check_svc_alive(svc)
 
-    def _stop_service(self, svc, timeout=3.0):
+    def _stop_service(self, svc, timeout=3.0, update_cfg=True):
         """ 
         关闭具体的服务
         """
@@ -207,15 +214,22 @@ class ProcessManager:
             print(f"Stop service {svc['name']} error: {e}")
         finally:
             svc["is_alive"] = False
+            svc['is_enabled'] = False
             svc['mcp_status'] = 'STOPPED'
+            if update_cfg:
+                if svc['name'] in self.basic_config.cfg.get('enabled_srv',[]):
+                    self.basic_config.cfg['enabled_srv'] = [s for s in self.basic_config.cfg['enabled_srv'] if s not in [svc['name']]]
+                    self.basic_config.save_cfg()
 
     def start_all_enabled_services(self):
         """
         Start all 'is_enabled' processes
         """
         for svc in self.services:
-            if svc.get("is_enabled", False):
-                self._start_service(svc)
+            # if svc.get("is_enabled", False):
+                # self._start_service(svc)
+            if svc.get("name") in self.basic_config.cfg.get('enabled_srv',[]):
+                self._start_service(svc, update_cfg=False)
 
     def stop_all_running_services(self):
         """
@@ -223,7 +237,7 @@ class ProcessManager:
         """
         for svc in self.services:
             if svc.get("is_alive", False):
-                self._stop_service(svc)
+                self._stop_service(svc,update_cfg=False)
 
     def count_alive(self):
         """ 
@@ -359,11 +373,15 @@ class ProcessManager:
         ]
 
         try:
-            with open('settings.json','r') as f:
-                dict_conf = json.load(f)
-                openai_url = dict_conf['openaiurl']
-                openai_key = dict_conf['openaikey']
-                openai_model = dict_conf['openaimodel']
+            self.basic_config.load_openai_cfg()
+            openai_url = self.basic_config.cfg['openaiurl']
+            openai_key = self.basic_config.cfg['openaikey']
+            openai_model = self.basic_config.cfg['openaimodel']
+            # with open('settings.json','r') as f:
+            #     dict_conf = json.load(f)
+            #     openai_url = dict_conf['openaiurl']
+            #     openai_key = dict_conf['openaikey']
+            #     openai_model = dict_conf['openaimodel']
         except Exception as e:
             return json.dumps({
                 'success': False,
@@ -402,7 +420,8 @@ class ProcessManager:
                     for call in response.model_dump()['choices'][0]['message']['tool_calls']:
                         tool_name = call['function']['name']
                         tool_params = call['function'].get("arguments","{}")
-                        
+                        #
+                        # 正式调用
                         tool_res = await self.call_tool(
                             svc_name=svc_name, 
                             tool_name=tool_name, 
@@ -465,11 +484,15 @@ class ProcessManager:
         ]
 
         try:
-            with open('settings.json','r') as f:
-                dict_conf = json.load(f)
-                openai_url = dict_conf['openaiurl']
-                openai_key = dict_conf['openaikey']
-                openai_model = dict_conf['openaimodel']
+            self.basic_config.load_openai_cfg()
+            openai_url = self.basic_config.cfg['openai_url']
+            openai_key = self.basic_config.cfg['openai_key']
+            openai_model = self.basic_config.cfg['openai_model']
+            # with open('settings.json','r') as f:
+            #     dict_conf = json.load(f)
+            #     openai_url = dict_conf['openaiurl']
+            #     openai_key = dict_conf['openaikey']
+            #     openai_model = dict_conf['openaimodel']
         except Exception as e:
             yield json.dumps({
                 'type': 'error',
@@ -602,7 +625,7 @@ def load_conf(filepath = 'mcp_conf.json'):
     for ms_key in mcp_servers.keys():
         ms_value = mcp_servers[ms_key]
         lst_mprocesses.append({
-            'name':ms_value.get("name", ms_key),
+            'name': ms_value.get("name", ms_key),
             'process':None,
             'in_type':"stdio" if ms_value.get("command",False) else ms_value.get("type", "sse" if ms_value.get("url","").find("/sse")>0 else "http"),
             'out_type': 'http',
@@ -610,7 +633,8 @@ def load_conf(filepath = 'mcp_conf.json'):
             'host': ms_value.get("host", '127.0.0.1'),
             'cwd': ms_value.get("cwd", None),
             'port': ms_value.get("out_port", "null"),
-            "is_enabled": ms_value.get("is_enabled", True),
+            # "is_enabled": ms_value.get("is_enabled", True),
+            "is_enabled": False, 
             "is_alive": False,
         })
     return lst_mprocesses
@@ -853,31 +877,69 @@ def delete_service_config(service_name, filepath='mcp_conf.json'):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(config_data, f, indent=2, ensure_ascii=False)
 
-    return {"success": True, "message": "Service deleted."}
+    return {
+        "success": True, 
+        "message": "Service deleted."
+    }
+
+#%%
+
+class mcp_config:
+    def __init__(self):
+        pass
+
 
 class basic_config:
     """ 
     """
     def __init__(self):
+        """ 
+        加载配置数据
+        """
         self.cfg = {}
+        self.load_enabled_srv()
+        self.load_openai_cfg()
     
     def save_cfg(self):
         """ 
+        保存配置
         """
-        with open('settings.json','w+') as f:
-            json.dump(self.cfg, f, indent=4, ensure_ascii=False)
+        try:
+            with open('settings.json','w+') as f:
+                json.dump(self.cfg, f, indent=4, ensure_ascii=False)
+            return {
+                'status': 'Succeed',
+                'info': 'saved'
+            }
+        except Exception as e:
+            return {
+                "status": 'Error',
+                'info': str(e)
+            }
     
     def load_openai_cfg(self):
         try:
-            with open('settings.json','r') as f:
+            with open('settings.json','r+') as f:
                 dict_conf = json.load(f)
                 self.cfg.update({
-                    'openai_url': dict_conf['openaiurl'],
-                    'openai_key': dict_conf['openaikey'],
-                    'openai_model': dict_conf['openaimodel'],
+                    'openai_url': dict_conf['openai_url'],
+                    'openai_key': dict_conf['openai_key'],
+                    'openai_model': dict_conf['openai_model'],
                 })
         except Exception as e:
             pass
+    
+    def load_enabled_srv(self):
+        try:
+            with open('settings.json','r+') as f:
+                dict_conf = json.load(f)
+                self.cfg.update({
+                    'enabled_srv': dict_conf.get('enabled_srv',[])
+                })
+        except Exception as e:
+            pass
+
+#%%
 
 def main():
     lst_srv = load_conf()

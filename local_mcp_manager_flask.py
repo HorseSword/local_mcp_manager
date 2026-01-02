@@ -26,6 +26,7 @@ manager = None
 def init_manager():
     """ 
     对全局变量的 mamager 初始化。
+    包括 load_conf 与 manager 初始化
     """
     global manager
     if manager is None:
@@ -706,7 +707,7 @@ def toggle_service_enabled(service_name):
                 else:
                     start_service(service_name)
             #
-            svc['is_enabled'] = not svc['is_enabled']
+            # svc['is_enabled'] = not svc['is_enabled']
             return jsonify({
                 'success': True,
                 'message': f'Service {service_name} status switched.',
@@ -735,24 +736,25 @@ def load_settings():
     Load settings from settings.json
     """
     try:
-        settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
+        # settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
 
-        # 如果文件不存在，返回默认设置
-        if not os.path.exists(settings_file):
-            default_settings = {
-                'openaiurl': '',
-                'openaikey': '',
-                'openaimodel': ''
-            }
-            return jsonify({
-                'success': True,
-                'settings': default_settings
-            })
+        # # 如果文件不存在，返回默认设置
+        # if not os.path.exists(settings_file):
+        #     default_settings = {
+        #         'openai_url': '',
+        #         'openai_key': '',
+        #         'openai_model': ''
+        #     }
+        #     return jsonify({
+        #         'success': True,
+        #         'settings': default_settings
+        #     })
 
-        # 读取现有设置
-        with open(settings_file, 'r', encoding='utf-8') as f:
-            settings = json.load(f)
+        # # 读取现有设置
+        # with open(settings_file, 'r', encoding='utf-8') as f:
+        #     settings = json.load(f)
 
+        settings = manager.basic_config.cfg
         return jsonify({
             'success': True,
             'settings': settings
@@ -788,9 +790,11 @@ def save_settings():
             }), 400
 
         # 保存到文件
-        settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
-        with open(settings_file, 'w', encoding='utf-8') as f:
-            json.dump(settings, f, indent=2, ensure_ascii=False)
+        # settings_file = os.path.join(os.path.dirname(__file__), 'settings.json')
+        # with open(settings_file, 'w+', encoding='utf-8') as f:
+        #     json.dump(settings, f, indent=2, ensure_ascii=False)
+        manager.basic_config.cfg.update(settings)
+        manager.basic_config.save_cfg()
 
         return jsonify({
             'success': True,
