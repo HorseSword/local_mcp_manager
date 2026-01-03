@@ -95,6 +95,182 @@
             overflow: auto;
         }
 
+        /* 左侧服务列表容器 */
+        .service-list-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 15px;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+
+        .service-list-header {
+            flex-shrink: 0;
+            margin-bottom: 15px;
+        }
+
+        .service-list-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .service-list-header p {
+            margin: 0;
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        /* 服务列表 */
+        .service-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+        }
+
+        /* 服务项 */
+        .service-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .service-item:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .service-item.selected {
+            background-color: #e7f1ff;
+            border-color: #007bff;
+        }
+
+        .service-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #f8f9fa;
+        }
+
+        .service-item.disabled:hover {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .service-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .service-item.disabled .service-checkbox {
+            cursor: not-allowed;
+        }
+
+        .service-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .service-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #212529;
+            margin-bottom: 2px;
+        }
+
+        .service-meta {
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-badge.on {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-badge.off {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .service-actions {
+            flex-shrink: 0;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .btn-refresh {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-refresh:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .btn-refresh svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-refresh.loading svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .selected-count {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #e7f1ff;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #004085;
+            text-align: center;
+        }
+
         /* 左侧 Tools JSON 显示容器 */
         #mcp-tools-json,
         #mcp-prompts-json,
@@ -398,7 +574,34 @@
 
         <!-- 左侧：MCP服务列表 (35%宽度) -->
         <div class="left-tabs-container" style="width: 35%;">
+            <div class="service-list-container">
+                <div class="service-list-header">
+                    <h2>MCP Services</h2>
+                    <p>Select services to use in chat</p>
+                </div>
 
+                <div class="service-list" id="service-list">
+                    <!-- 服务列表将通过JS动态生成 -->
+                    <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
+                        Loading services...
+                    </div>
+                </div>
+
+                <div class="selected-count" id="selected-count">
+                    0 services selected
+                </div>
+
+                <div class="service-actions">
+                    <button class="btn-refresh" id="btn-refresh" onclick="refreshServices()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Refresh Services
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- 右侧：标签页区域 (64%宽度) -->
@@ -449,7 +652,7 @@
                     </div>
                 </div>
             </div>
-            
+
         </div>
     </div>
 </div>
@@ -458,7 +661,165 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/_json.js') }}"></script>
 
 <script>
-    // 右侧标签页切换函数
+    // ========== 服务列表相关 ==========
+    let servicesData = []; // 存储服务数据
+    let selectedServices = new Set(); // 存储选中的服务名称
+
+    // 获取选中的服务名称列表（供右侧聊天调用）
+    function getSelectedServices() {
+        return Array.from(selectedServices);
+    }
+
+    // 获取服务列表
+    async function fetchServices() {
+        try {
+            const response = await fetch('/api/services');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            servicesData = data.services || [];
+            renderServices();
+        } catch (error) {
+            console.error('Failed to fetch services:', error);
+            const serviceList = document.getElementById('service-list');
+            serviceList.innerHTML = `
+                <div style="text-align: center; color: #dc3545; padding: 40px 20px;">
+                    <div style="font-size: 16px; margin-bottom: 8px;">Failed to load services</div>
+                    <div style="font-size: 13px;">${escapeHtml(error.message)}</div>
+                </div>
+            `;
+        }
+    }
+
+    // 渲染服务列表
+    function renderServices() {
+        const serviceList = document.getElementById('service-list');
+        const selectedCount = document.getElementById('selected-count');
+
+        if (servicesData.length === 0) {
+            serviceList.innerHTML = `
+                <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
+                    No services available
+                </div>
+            `;
+            selectedCount.textContent = '0 services selected';
+            return;
+        }
+
+        serviceList.innerHTML = '';
+
+        servicesData.forEach(service => {
+            const isOn = service.mcp_status === 'ON';
+            const isEnabled = service.is_enabled;
+
+            const serviceItem = document.createElement('div');
+            serviceItem.className = 'service-item';
+            serviceItem.setAttribute('data-service-name', service.name);
+
+            if (!isOn) {
+                serviceItem.classList.add('disabled');
+            } else if (selectedServices.has(service.name)) {
+                serviceItem.classList.add('selected');
+            }
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'service-checkbox';
+            checkbox.checked = selectedServices.has(service.name);
+            checkbox.disabled = !isOn;
+            checkbox.onclick = (e) => {
+                e.stopPropagation();
+                toggleService(service.name, isOn);
+            };
+
+            const serviceInfo = document.createElement('div');
+            serviceInfo.className = 'service-info';
+            serviceInfo.innerHTML = `
+                <div class="service-name">${escapeHtml(service.name)}</div>
+                <div class="service-meta">
+                    <span class="status-badge ${isOn ? 'on' : 'off'}">${service.mcp_status || 'OFF'}</span>
+                    <span>${service.in_type || 'N/A'} → ${service.out_type || 'N/A'}</span>
+                    ${service.port ? `<span>Port: ${service.port}</span>` : ''}
+                </div>
+            `;
+
+            serviceItem.appendChild(checkbox);
+            serviceItem.appendChild(serviceInfo);
+
+            // 点击整行切换选中状态（仅当服务可用时）
+            if (isOn) {
+                serviceItem.onclick = () => toggleService(service.name, true);
+            }
+
+            serviceList.appendChild(serviceItem);
+        });
+
+        updateSelectedCount();
+    }
+
+    // 切换服务选择状态
+    function toggleService(serviceName, isSelectable) {
+        if (!isSelectable) return;
+
+        if (selectedServices.has(serviceName)) {
+            selectedServices.delete(serviceName);
+        } else {
+            selectedServices.add(serviceName);
+        }
+
+        // 更新UI
+        const serviceItem = document.querySelector(`[data-service-name="${serviceName}"]`);
+        if (serviceItem) {
+            const checkbox = serviceItem.querySelector('.service-checkbox');
+            if (selectedServices.has(serviceName)) {
+                serviceItem.classList.add('selected');
+                checkbox.checked = true;
+            } else {
+                serviceItem.classList.remove('selected');
+                checkbox.checked = false;
+            }
+        }
+
+        updateSelectedCount();
+    }
+
+    // 更新选中计数显示
+    function updateSelectedCount() {
+        const selectedCount = document.getElementById('selected-count');
+        const count = selectedServices.size;
+        selectedCount.textContent = `${count} service${count !== 1 ? 's' : ''} selected`;
+    }
+
+    // 刷新服务列表
+    async function refreshServices() {
+        const btn = document.getElementById('btn-refresh');
+        btn.disabled = true;
+        btn.classList.add('loading');
+        btn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Refreshing...
+        `;
+
+        await fetchServices();
+
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Refresh Services
+        `;
+    }
+
+    // ========== 右侧标签页切换函数 ==========
     function switchTab(tabName) {
         // 移除所有右侧按钮的active状态
         document.querySelectorAll('.tab-button:not(.left-tab)').forEach(btn => {
@@ -660,8 +1021,21 @@
         // 显示加载指示器
         showTypingIndicator();
 
-        // 获取服务名称
-        const serviceName = document.querySelector('.header-section h1').textContent;
+        // 获取选中的服务列表
+        const selectedServices = getSelectedServices();
+
+        // 检查是否选中了服务
+        if (selectedServices.length === 0) {
+            hideTypingIndicator();
+            isProcessing = false;
+            const sendButtons = document.querySelectorAll('.btn-send-message');
+            sendButtons.forEach(btn => btn.disabled = false);
+            addAIResponseMessage('Please select at least one MCP service from the left panel first.');
+            return;
+        }
+
+        // 多服务调用，用 | 分隔
+        const serviceName = selectedServices.join('|');
 
         try {
             // 调用后端流式API
@@ -1075,6 +1449,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         // 确保DOM已完全加载
         console.log('MCP工具调用表单初始化完成');
+
+        // 初始化服务列表
+        fetchServices();
 
         // 格式化左侧 Tools 标签页的 JSON
         formatMCPToolsJSON();
