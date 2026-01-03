@@ -357,12 +357,13 @@ class ProcessManager:
         # 获取服务的工具列表
         lst_svc_names = svc_name.split('|')  # 暂定分隔符为 | 符号
         lst_svc = [svc for svc in self.services if svc.get("name","no_name") in lst_svc_names]
-        if len(lst_svc) <= 0:
-            yield json.dumps({
-                'type': 'error',
-                'message': f'Service {svc_name} not found'
-            }, ensure_ascii=False)
-            return
+        if len(lst_svc) <= 0:  # 如果不对应任何服务的话
+            pass # 后面就不调用工具即可
+            # yield json.dumps({
+            #     'type': 'error',
+            #     'message': f'Service {svc_name} not found'
+            # }, ensure_ascii=False)
+            # return
         else:
             for svc in lst_svc:
                 tmp_lst_tools = svc.get('tools', [])
@@ -406,7 +407,7 @@ class ProcessManager:
         while n_round < MAX_ROUND:
             n_round += 1
             try:
-                if n_round < MAX_ROUND:
+                if n_round < MAX_ROUND and len(lst_tools)>0:
                     response = client.chat.completions.create(
                         model = openai_model,
                         messages=[{"role":"system","content":"You can use tools to help user when necessary."}] + lst_msg_selected,

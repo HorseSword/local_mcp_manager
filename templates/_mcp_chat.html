@@ -1024,18 +1024,21 @@
         // 获取选中的服务列表
         const selectedServices = getSelectedServices();
 
+        let serviceName;
         // 检查是否选中了服务
         if (selectedServices.length === 0) {
-            hideTypingIndicator();
-            isProcessing = false;
-            const sendButtons = document.querySelectorAll('.btn-send-message');
-            sendButtons.forEach(btn => btn.disabled = false);
-            addAIResponseMessage('Please select at least one MCP service from the left panel first.');
-            return;
+            // hideTypingIndicator();
+            // isProcessing = false;
+            // const sendButtons = document.querySelectorAll('.btn-send-message');
+            // sendButtons.forEach(btn => btn.disabled = false);
+            // addAIResponseMessage('Please select at least one MCP service from the left panel first.');
+            // return;
+            serviceName = 'none';
         }
-
-        // 多服务调用，用 | 分隔
-        const serviceName = selectedServices.join('|');
+        else {
+            // 多服务调用，用 | 分隔
+            serviceName = selectedServices.join('|');
+        }
 
         try {
             // 调用后端流式API
